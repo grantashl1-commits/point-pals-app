@@ -251,7 +251,7 @@ function AboutPage() {
           </h3>
           <p>
             Doucleff's research in <em>Dopamine Kids</em> reveals that children today are
-            neurologically acclimated to high-intensity, variable-ratio rewards (screens, games,
+            neurologically habituated to high-intensity, variable-ratio rewards (screens, games,
             social media). A marble loss — a soft chime, a marble fading away — is the <em>opposite</em> of
             that. It's a low-dopamine, predictable, honest signal. It doesn't trigger the same
             fight-or-flight response that a parent yelling would. And it doesn't create the same
