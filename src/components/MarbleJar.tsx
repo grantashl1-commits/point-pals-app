@@ -47,6 +47,28 @@ const MARBLE_TINT: Record<string, [string, string]> = {
 const DEFAULT_TINT: [string, string] = ["#B79BE0", "#D7C7F0"];
 const DISSOLVE_MS = 600;
 
+// Synthetic marble set for callers (marketing hero) that don't have a real
+// event log — cycles through the palette so the jar still looks alive.
+function buildSynthetic(
+  value: number,
+  target: number,
+  perMarble: number,
+  cap: number,
+) {
+  const count = Math.min(
+    Math.round(Math.max(0, value) / perMarble),
+    Math.round(target / perMarble),
+    cap,
+  );
+  const palette = Object.values(MARBLE_TINT);
+  const list: { id: string; kidId: string; color: string; hue: string }[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = palette[i % palette.length];
+    list.push({ id: `syn-${i}`, kidId: "syn", color: t[0], hue: t[1] });
+  }
+  return list;
+}
+
 // Build the deterministic desired marble list from the event log. Walking
 // chronologically means the marble stack ends up in the same order every time
 // the component re-renders — critical for stable ids so the diff below can
