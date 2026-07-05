@@ -8,9 +8,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Global tactile tap feedback for interactive controls. */
+/* Global tactile tap feedback for interactive controls. `touch-action:
+ * manipulation` removes the double-tap-to-zoom delay/gesture without disabling
+ * pinch-zoom (kept for accessibility on text-heavy pages). */
 @utility tap {
   transition: transform 120ms ease-out;
+  touch-action: manipulation;
   &:active {
     transform: scale(0.96);
   }
@@ -376,6 +379,21 @@
   body {
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
+    /* Native-app feel: no grey tap-flash, and the app owns its own scroll —
+     * the browser's pull-to-refresh bounce doesn't take over. */
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Buttons, links and inputs skip the 300 ms double-tap-zoom wait while
+   * keeping pinch-zoom available page-wide. */
+  button,
+  a,
+  input,
+  textarea,
+  select,
+  [role="button"] {
+    touch-action: manipulation;
   }
 
   body {

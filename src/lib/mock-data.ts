@@ -27,8 +27,8 @@ export type Kid = {
   id: string;
   name: string;
   color: PastelKey;
-  currentPoints: number;   // resets to 0 when a reward is claimed
-  allTimePoints: number;   // never resets, cumulative forever
+  currentPoints: number; // resets to 0 when a reward is claimed
+  allTimePoints: number; // never resets, cumulative forever
   companionId?: string; // chosen mascot (matches COMPANIONS.id)
 };
 
@@ -40,6 +40,9 @@ export type Chore = {
   points: number;
   recurrence: "none" | "daily" | "weekly";
   tags: string[];
+  // null/undefined/[] = universal (applies to every kid, incl. kids added
+  // later). A non-empty array = a static allow-list of kid ids.
+  assignedKidIds?: string[] | null;
 };
 
 export type Skill = {
@@ -49,7 +52,13 @@ export type Skill = {
   color: PastelKey;
   points: number; // negative for "needs work"
   isPositive: boolean;
+  assignedKidIds?: string[] | null;
 };
+
+/** Does this chore/skill apply to the given kid? Empty/absent list = everyone. */
+export function appliesToKid(item: { assignedKidIds?: string[] | null }, kidId: string): boolean {
+  return !item.assignedKidIds?.length || item.assignedKidIds.includes(kidId);
+}
 
 export type Companion = {
   id: string;
@@ -70,13 +79,9 @@ export type PointEvent = {
   points: number;
   at: number;
   batchId?: string | null;
-};
-
-export type RewardProposal = {
-  id: string;
-  proposedByKidId: string;
-  name: string;
-  votes: string[]; // kid ids
+  // "correction" = a parent's manual fix (double-tap, wrong kid). Rendered
+  // neutral/grey and excluded from behaviour stats — never a red/green event.
+  type?: "award" | "correction";
 };
 
 export type RewardHistory = {
@@ -108,9 +113,30 @@ export const SUPABASE_ASSET_BASE =
 const A = (file: string) => `${SUPABASE_ASSET_BASE}/${file}`;
 
 export const INITIAL_KIDS: Kid[] = [
-  { id: "k1", name: "Nova", color: "blush", currentPoints: 34, allTimePoints: 145, companionId: "sunny" },
-  { id: "k2", name: "Milo", color: "sky", currentPoints: 22, allTimePoints: 98, companionId: "pip" },
-  { id: "k3", name: "Wren", color: "sage", currentPoints: 18, allTimePoints: 72, companionId: "fern" },
+  {
+    id: "k1",
+    name: "Nova",
+    color: "blush",
+    currentPoints: 34,
+    allTimePoints: 145,
+    companionId: "sunny",
+  },
+  {
+    id: "k2",
+    name: "Milo",
+    color: "sky",
+    currentPoints: 22,
+    allTimePoints: 98,
+    companionId: "pip",
+  },
+  {
+    id: "k3",
+    name: "Wren",
+    color: "sage",
+    currentPoints: 18,
+    allTimePoints: 72,
+    companionId: "fern",
+  },
 ];
 
 export const INITIAL_CHORES: Chore[] = [
@@ -789,9 +815,4 @@ export const INITIAL_HISTORY: PointEvent[] = [
     points: 3,
     at: Date.now() - DAY * 1 - 1000 * 60 * 120,
   },
-];
-
-export const INITIAL_PROPOSALS: RewardProposal[] = [
-  { id: "p1", proposedByKidId: "k1", name: "Pizza & movie night", votes: ["k1", "k3"] },
-  { id: "p2", proposedByKidId: "k2", name: "Trip to the trampoline park", votes: ["k2"] },
 ];

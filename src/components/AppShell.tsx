@@ -21,7 +21,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pct = Math.min(100, (household.sharedPool / household.rewardTarget) * 100);
 
   // Chrome-free routes: marketing page + auth pages.
-  const CHROME_FREE = ["/welcome", "/sign-in", "/sign-up", "/reset-password", "/about", "/faq", "/blog"];
+  const CHROME_FREE = [
+    "/welcome",
+    "/sign-in",
+    "/sign-up",
+    "/reset-password",
+    "/about",
+    "/faq",
+    "/blog",
+  ];
   if (CHROME_FREE.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return <>{children}</>;
   }
@@ -125,13 +133,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               to="/settings"
               aria-label="Settings"
-              className={`md:hidden h-10 w-10 rounded-full border border-border flex items-center justify-center transition ${
+              className={`tap md:hidden h-11 w-11 rounded-full border border-border flex items-center justify-center transition ${
                 pathname.startsWith("/settings")
                   ? "bg-foreground text-background"
                   : "bg-card/80 text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Settings className="w-4.5 h-4.5" />
+              <Settings className="w-5 h-5" />
             </Link>
           </div>
         </div>
@@ -157,14 +165,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={to}
                 to={to}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`tap flex flex-col items-center justify-center gap-0.5 min-h-[48px] px-3.5 py-1.5 rounded-2xl text-[11px] font-semibold transition-all ${
                   active
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{label}</span>
+                <Icon className="w-5 h-5" />
+                <span>{label}</span>
               </Link>
             );
           })}

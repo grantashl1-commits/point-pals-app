@@ -18,7 +18,7 @@ export function KidBadge({
   size?: "sm" | "md" | "lg";
   streak?: number;
 }) {
-  const dim = { sm: 44, md: 60, lg: 80 }[size];
+  const dim = { sm: 44, md: 60, lg: 92 }[size];
   const [flash, setFlash] = useState<"up" | "down" | null>(null);
   const prev = useRef(kid.currentPoints);
 
@@ -35,7 +35,7 @@ export function KidBadge({
     <button
       type="button"
       onClick={onClick}
-      className="group relative flex flex-col items-center gap-1.5 focus:outline-none"
+      className="tap group relative flex flex-col items-center gap-1.5 focus:outline-none"
     >
       <div className="relative">
         <div
@@ -44,7 +44,12 @@ export function KidBadge({
             shadow-[0_6px_14px_-6px_rgba(120,110,90,0.35)]`}
           style={{ width: dim, height: dim, backgroundColor: PASTEL_HEX[kid.color] }}
         >
-          <CompanionAvatar seed={kid.id} color={kid.color} size={dim} companionId={kid.companionId} />
+          <CompanionAvatar
+            seed={kid.id}
+            color={kid.color}
+            size={dim}
+            companionId={kid.companionId}
+          />
         </div>
 
         {/* streak flame */}
@@ -60,7 +65,7 @@ export function KidBadge({
         )}
       </div>
 
-      <div className="text-xs font-semibold text-foreground/80">{kid.name}</div>
+      <div className="text-sm font-semibold text-foreground/80">{kid.name}</div>
       {size !== "sm" && (
         <div
           className={`font-display text-lg font-bold leading-none -mt-1 rounded-full px-2 transition-colors ${

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Download, Check, Loader2 } from "lucide-react";
 import { useApp } from "@/lib/app-store";
 import { CompanionAvatar } from "@/components/CompanionAvatar";
-import { PASTEL_HEX, type Kid } from "@/lib/mock-data";
+import { PASTEL_HEX, appliesToKid, type Kid } from "@/lib/mock-data";
 import { companionForKid, downloadKidChart, weeklyChores } from "@/lib/printable-chart";
 
 // Per-kid card on the Family tab: shows the child's derived companion mascot and a
@@ -13,7 +13,10 @@ export function KidChartCard({ kid }: { kid: Kid }) {
   const [note, setNote] = useState<string | null>(null);
 
   const companion = companionForKid(kid);
-  const active = weeklyChores(chores);
+  // Per-kid assignment: this kid's chart only lists chores that apply to them
+  // (universal, or narrowed to a list that includes them) — same rule as the
+  // live award modal, so the printed page and the app always agree.
+  const active = weeklyChores(chores.filter((c) => appliesToKid(c, kid.id)));
 
   const onDownload = async () => {
     if (state === "working") return;
@@ -61,7 +64,8 @@ export function KidChartCard({ kid }: { kid: Kid }) {
       </div>
       <div className="font-display text-xl font-bold leading-tight">{kid.name}</div>
       <div className="text-xs text-muted-foreground mb-3">
-        {kid.currentPoints} current · {kid.allTimePoints} all-time · {active.length} weekly {active.length === 1 ? "chore" : "chores"}
+        {kid.currentPoints} current · {kid.allTimePoints} all-time · {active.length} weekly{" "}
+        {active.length === 1 ? "chore" : "chores"}
       </div>
 
       <button

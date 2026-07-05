@@ -13,12 +13,10 @@ import {
   INITIAL_SKILLS,
   INITIAL_HOUSEHOLD,
   INITIAL_HISTORY,
-  INITIAL_PROPOSALS,
   type Kid,
   type Chore,
   type Skill,
   type PointEvent,
-  type RewardProposal,
   type PastelKey,
 } from "./mock-data";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +36,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 //
 // Backend note: this is intentionally a swappable seam. Every mutation below is
 // a pure state transition that maps 1:1 to a Supabase table write (households,
-// kids, chores, skills, point_events, reward_proposals — see
+// kids, chores, skills, point_events, reward_history — see
 // supabase/migrations). When the project is reachable, replace the useState
 // backing with react-query mutations against those tables; the component API
 // (useApp) stays identical. State is persisted to localStorage so the app feels
@@ -70,7 +68,6 @@ type Ctx = {
   chores: Chore[];
   skills: Skill[];
   history: PointEvent[];
-  proposals: RewardProposal[];
   streakByKid: Record<string, number>;
   hydrated: boolean;
   mode: "demo" | "live";
@@ -87,9 +84,12 @@ type Ctx = {
   updateKid: (id: string, patch: Partial<Omit<Kid, "id">>) => void;
   removeChore: (id: string) => void;
   removeSkill: (id: string) => void;
-  addProposal: (kidId: string, name: string) => void;
-  voteProposal: (kidId: string, proposalId: string) => void;
-  selectReward: (proposalId: string) => string | null;
+  /** Reward claimed: zero every kid's currentPoints and the shared pool.
+   *  allTimePoints is deliberately untouched — that's the permanent record. */
+  resetRewardCycle: () => void;
+  /** Manual fix for an accidental tap — adjusts BOTH totals and logs a
+   *  neutral "correction" history entry (never styled as behaviour). */
+  correctPoints: (kidId: string, delta: number, reason?: string) => void;
   setRewardTarget: (n: number) => void;
   setHouseholdName: (n: string) => void;
   setSubscriptionStatus: (s: Household["subscriptionStatus"]) => void;
@@ -118,7 +118,6 @@ type Persisted = {
   chores: Chore[];
   skills: Skill[];
   history: PointEvent[];
-  proposals: RewardProposal[];
 };
 
 function initialState(): Persisted {
@@ -128,7 +127,6 @@ function initialState(): Persisted {
     chores: INITIAL_CHORES,
     skills: INITIAL_SKILLS,
     history: INITIAL_HISTORY,
-    proposals: INITIAL_PROPOSALS,
   };
 }
 
@@ -169,6 +167,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<"demo" | "live">("demo");
   const [needsHousehold, setNeedsHousehold] = useState(false);
   const householdIdRef = useRef<string | null>(null);
+  // The signed-in user id, stamped onto point_events.awarded_by (Reports
+  // attribution). Null in signed-out demo mode.
+  const userIdRef = useRef<string | null>(null);
   // Row ids we just wrote — used to suppress realtime echoes of our own writes.
   const echoIds = useRef<Set<string>>(new Set());
   const markEcho = (id: string) => {
@@ -192,7 +193,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           chores: parsed.chores ?? prev.chores,
           skills: parsed.skills ?? prev.skills,
           history: parsed.history ?? prev.history,
-          proposals: parsed.proposals ?? prev.proposals,
         }));
       }
     } catch {
@@ -227,7 +227,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           chores: parsed.chores ?? prev.chores,
           skills: parsed.skills ?? prev.skills,
           history: parsed.history ?? prev.history,
-          proposals: parsed.proposals ?? prev.proposals,
         }));
       } catch {
         /* ignore malformed cross-tab payload */
@@ -241,6 +240,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Live-mode bootstrap: sign-in → fetch bundle → subscribe realtime.
   // ---------------------------------------------------------------------------
   const bootLive = async (userId: string) => {
+    userIdRef.current = userId;
     const hid = await fetchPrimaryHouseholdId(userId);
     if (!hid) {
       setNeedsHousehold(true);
@@ -257,7 +257,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       chores: bundle.chores,
       skills: bundle.skills,
       history: bundle.history,
-      proposals: bundle.proposals,
     });
     setMode("live");
   };
@@ -273,6 +272,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         void bootLive(session.user.id);
       } else if (event === "SIGNED_OUT") {
         householdIdRef.current = null;
+        userIdRef.current = null;
         setMode("demo");
         setNeedsHousehold(false);
         setState(initialState());
@@ -282,7 +282,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       sub.subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Realtime subscriptions — one channel per household, torn down on switch.
@@ -348,7 +347,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setState((s) => ({
               ...s,
               chores: s.chores.some((x) => x.id === c.id)
-                ? s.chores.map((x) => (x.id === c.id ? { ...x, ...c, tags: x.tags } : x))
+                ? s.chores.map((x) => (x.id === c.id ? { ...x, ...c } : x))
                 : [...s.chores, c],
             }));
           } else if (payload.eventType === "DELETE") {
@@ -383,7 +382,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [mode]);
 
-  const { household, kids, chores, skills, history, proposals } = state;
+  const { household, kids, chores, skills, history } = state;
 
   const streakByKid = useMemo(() => computeStreaks(kids, chores, history), [kids, chores, history]);
 
@@ -411,7 +410,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     chores,
     skills,
     history,
-    proposals,
     streakByKid,
     hydrated,
     mode,
@@ -437,7 +435,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...s,
         kids: s.kids.map((k) =>
           kidIds.includes(k.id)
-            ? { ...k, currentPoints: Math.max(0, k.currentPoints + item.points), allTimePoints: Math.max(0, k.allTimePoints + item.points) }
+            ? {
+                ...k,
+                currentPoints: Math.max(0, k.currentPoints + item.points),
+                allTimePoints: Math.max(0, k.allTimePoints + item.points),
+              }
             : k,
         ),
         household: {
@@ -462,11 +464,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           async () =>
             await supabase
               .from("point_events")
-              .insert(eventRows.map((r) => ({ ...r, household_id: hid() }))),
+              .insert(
+                eventRows.map(
+                  (r) => ({ ...r, household_id: hid(), awarded_by: userIdRef.current }) as never,
+                ),
+              ),
           eventRows.map((r) => r.id),
         );
-        void dbWrite(async () =>
-          await supabase.from("households").update({ shared_pool: nextPool }).eq("id", hid()),
+        void dbWrite(
+          async () =>
+            await supabase.from("households").update({ shared_pool: nextPool }).eq("id", hid()),
         );
         // Sync per-kid totals — update BOTH current_points and all_time_points.
         kidIds.forEach((kidId) => {
@@ -474,11 +481,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (!kid) return;
           const nextCur = Math.max(0, kid.currentPoints + item.points);
           const nextAll = Math.max(0, kid.allTimePoints + item.points);
-          void dbWrite(async () =>
-            await supabase
-              .from("kids")
-              .update({ current_points: nextCur, all_time_points: nextAll } as any)
-              .eq("id", kidId),
+          void dbWrite(
+            async () =>
+              await supabase
+                .from("kids")
+                .update({ current_points: nextCur, all_time_points: nextAll } as never)
+                .eq("id", kidId),
           );
         });
       }
@@ -489,33 +497,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...s,
         kids: s.kids.map((k) =>
           batch.kidIds.includes(k.id)
-            ? { ...k, currentPoints: Math.max(0, k.currentPoints - batch.item.points), allTimePoints: Math.max(0, k.allTimePoints - batch.item.points) }
+            ? {
+                ...k,
+                currentPoints: Math.max(0, k.currentPoints - batch.item.points),
+                allTimePoints: Math.max(0, k.allTimePoints - batch.item.points),
+              }
             : k,
         ),
         household: {
           ...s.household,
           sharedPool: Math.max(0, s.household.sharedPool - batch.poolDelta),
         },
-        history: s.history.filter((e) => (e as PointEvent & { batchId?: string }).batchId !== batch.id && !e.id.startsWith(batch.id)),
+        history: s.history.filter(
+          (e) =>
+            (e as PointEvent & { batchId?: string }).batchId !== batch.id &&
+            !e.id.startsWith(batch.id),
+        ),
       }));
       if (live) {
-        void dbWrite(async () =>
-          await supabase.from("point_events").delete().eq("batch_id", batch.id),
+        void dbWrite(
+          async () => await supabase.from("point_events").delete().eq("batch_id", batch.id),
         );
         const nextPool = Math.max(0, household.sharedPool - batch.poolDelta);
-        void dbWrite(async () =>
-          await supabase.from("households").update({ shared_pool: nextPool }).eq("id", hid()),
+        void dbWrite(
+          async () =>
+            await supabase.from("households").update({ shared_pool: nextPool }).eq("id", hid()),
         );
         batch.kidIds.forEach((kidId) => {
           const kid = kids.find((k) => k.id === kidId);
           if (!kid) return;
           const nextCur = Math.max(0, kid.currentPoints - batch.item.points);
           const nextAll = Math.max(0, kid.allTimePoints - batch.item.points);
-          void dbWrite(async () =>
-            await supabase
-              .from("kids")
-              .update({ current_points: nextCur, all_time_points: nextAll } as any)
-              .eq("id", kidId),
+          void dbWrite(
+            async () =>
+              await supabase
+                .from("kids")
+                .update({ current_points: nextCur, all_time_points: nextAll } as never)
+                .eq("id", kidId),
           );
         });
       }
@@ -534,7 +552,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
               color: c.color,
               points: c.points,
               recurrence: c.recurrence,
-            }),
+              tags: c.tags ?? [],
+              assigned_kid_ids: c.assignedKidIds?.length ? c.assignedKidIds : null,
+            } as never),
           [id],
         );
       }
@@ -553,7 +573,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               color: sk.color,
               points: sk.points,
               is_positive: sk.isPositive,
-            }),
+              assigned_kid_ids: sk.assignedKidIds?.length ? sk.assignedKidIds : null,
+            } as never),
           [id],
         );
       }
@@ -564,14 +585,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
         chores: s.chores.map((c) => (c.id === id ? { ...c, ...patch } : c)),
       }));
       if (live) {
-        const dbPatch: Database["public"]["Tables"]["chores"]["Update"] = {};
+        const dbPatch: Database["public"]["Tables"]["chores"]["Update"] & Record<string, unknown> =
+          {};
         if (patch.name !== undefined) dbPatch.name = patch.name;
         if (patch.icon !== undefined) dbPatch.icon = patch.icon;
         if (patch.color !== undefined) dbPatch.color = patch.color;
         if (patch.points !== undefined) dbPatch.points = patch.points;
         if (patch.recurrence !== undefined) dbPatch.recurrence = patch.recurrence;
+        if (patch.tags !== undefined) dbPatch.tags = patch.tags;
+        if (patch.assignedKidIds !== undefined)
+          dbPatch.assigned_kid_ids = patch.assignedKidIds?.length ? patch.assignedKidIds : null;
         if (Object.keys(dbPatch).length) {
-          void dbWrite(async () => await supabase.from("chores").update(dbPatch).eq("id", id));
+          void dbWrite(
+            async () =>
+              await supabase
+                .from("chores")
+                .update(dbPatch as never)
+                .eq("id", id),
+          );
         }
       }
     },
@@ -581,14 +612,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         skills: s.skills.map((sk) => (sk.id === id ? { ...sk, ...patch } : sk)),
       }));
       if (live) {
-        const dbPatch: Database["public"]["Tables"]["skills"]["Update"] = {};
+        const dbPatch: Database["public"]["Tables"]["skills"]["Update"] & Record<string, unknown> =
+          {};
         if (patch.name !== undefined) dbPatch.name = patch.name;
         if (patch.icon !== undefined) dbPatch.icon = patch.icon;
         if (patch.color !== undefined) dbPatch.color = patch.color;
         if (patch.points !== undefined) dbPatch.points = patch.points;
         if (patch.isPositive !== undefined) dbPatch.is_positive = patch.isPositive;
+        if (patch.assignedKidIds !== undefined)
+          dbPatch.assigned_kid_ids = patch.assignedKidIds?.length ? patch.assignedKidIds : null;
         if (Object.keys(dbPatch).length) {
-          void dbWrite(async () => await supabase.from("skills").update(dbPatch).eq("id", id));
+          void dbWrite(
+            async () =>
+              await supabase
+                .from("skills")
+                .update(dbPatch as never)
+                .eq("id", id),
+          );
         }
       }
     },
@@ -601,8 +641,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const dbPatch: Database["public"]["Tables"]["kids"]["Update"] = {};
         if (patch.name !== undefined) dbPatch.name = patch.name;
         if (patch.color !== undefined) dbPatch.color = patch.color;
-        if (patch.currentPoints !== undefined) (dbPatch as any).current_points = patch.currentPoints;
-        if (patch.allTimePoints !== undefined) (dbPatch as any).all_time_points = patch.allTimePoints;
+        if (patch.currentPoints !== undefined)
+          (dbPatch as Record<string, unknown>).current_points = patch.currentPoints;
+        if (patch.allTimePoints !== undefined)
+          (dbPatch as Record<string, unknown>).all_time_points = patch.allTimePoints;
         if (patch.companionId !== undefined) dbPatch.avatar_key = patch.companionId;
         if (Object.keys(dbPatch).length) {
           void dbWrite(async () => await supabase.from("kids").update(dbPatch).eq("id", id));
@@ -621,92 +663,94 @@ export function AppProvider({ children }: { children: ReactNode }) {
         void dbWrite(async () => await supabase.from("skills").delete().eq("id", id));
       }
     },
-    addProposal: (kidId, name) => {
-      const id = uid();
+    resetRewardCycle: () => {
       setState((s) => ({
         ...s,
-        proposals: [...s.proposals, { id, proposedByKidId: kidId, name, votes: [kidId] }],
+        kids: s.kids.map((k) => ({ ...k, currentPoints: 0 })),
+        household: { ...s.household, sharedPool: 0 },
+      }));
+      if (live) {
+        void dbWrite(
+          async () => await supabase.from("households").update({ shared_pool: 0 }).eq("id", hid()),
+        );
+        for (const kid of kids) {
+          void dbWrite(
+            async () =>
+              await supabase
+                .from("kids")
+                .update({ current_points: 0 } as never)
+                .eq("id", kid.id),
+          );
+        }
+      }
+    },
+    correctPoints: (kidId, delta, reason) => {
+      const kid = kids.find((k) => k.id === kidId);
+      if (!kid || delta === 0) return;
+      const eventId = uid();
+      const now = Date.now();
+      const nextCur = Math.max(0, kid.currentPoints + delta);
+      const nextAll = Math.max(0, kid.allTimePoints + delta);
+      const itemName = reason ? `Correction: ${reason}` : "Correction";
+      setState((s) => ({
+        ...s,
+        kids: s.kids.map((k) =>
+          k.id === kidId ? { ...k, currentPoints: nextCur, allTimePoints: nextAll } : k,
+        ),
+        // Corrections deliberately do NOT touch the shared pool: the jar is the
+        // family-facing celebration surface, and an admin fix shouldn't yank
+        // marbles out in front of the kids unless a real award is undone.
+        history: [
+          {
+            id: eventId,
+            kidId,
+            itemName,
+            itemIcon: "🛠️",
+            points: delta,
+            at: now,
+            type: "correction" as const,
+          },
+          ...s.history,
+        ].slice(0, 200),
       }));
       if (live) {
         void dbWrite(
           async () =>
-            await supabase
-              .from("reward_proposals")
-              .insert({ id, household_id: hid(), name, proposed_by: kidId }),
-          [id],
+            await supabase.from("point_events").insert({
+              id: eventId,
+              household_id: hid(),
+              kid_id: kidId,
+              item_name: itemName,
+              item_icon: "🛠️",
+              points: delta,
+              batch_id: `corr_${eventId}`,
+              awarded_by: userIdRef.current,
+            } as never),
+          [eventId],
         );
-        void dbWrite(async () =>
-          await supabase.from("reward_votes").insert({ proposal_id: id, kid_id: kidId }),
+        void dbWrite(
+          async () =>
+            await supabase
+              .from("kids")
+              .update({ current_points: nextCur, all_time_points: nextAll } as never)
+              .eq("id", kidId),
         );
       }
-    },
-    voteProposal: (kidId, proposalId) => {
-      // A vote is exclusive per kid — clear any of their votes on other proposals first.
-      const previousProposalIds = proposals
-        .filter((p) => p.votes.includes(kidId) && p.id !== proposalId)
-        .map((p) => p.id);
-      const alreadyVoted = proposals.find((p) => p.id === proposalId)?.votes.includes(kidId);
-      setState((s) => ({
-        ...s,
-        proposals: s.proposals.map((p) => {
-          if (p.id !== proposalId) return { ...p, votes: p.votes.filter((v) => v !== kidId) };
-          return p.votes.includes(kidId) ? p : { ...p, votes: [...p.votes, kidId] };
-        }),
-      }));
-      if (live) {
-        if (previousProposalIds.length) {
-          void dbWrite(async () =>
-            await supabase
-              .from("reward_votes")
-              .delete()
-              .eq("kid_id", kidId)
-              .in("proposal_id", previousProposalIds),
-          );
-        }
-        if (!alreadyVoted) {
-          void dbWrite(async () =>
-            await supabase
-              .from("reward_votes")
-              .insert({ proposal_id: proposalId, kid_id: kidId }),
-          );
-        }
-      }
-    },
-    selectReward: (proposalId) => {
-      const chosen = proposals.find((p) => p.id === proposalId);
-      if (!chosen) return null;
-      const nextPool = Math.max(0, household.sharedPool - household.rewardTarget);
-      setState((s) => ({
-        ...s,
-        proposals: [],
-        household: {
-          ...s.household,
-          sharedPool: nextPool,
-        },
-      }));
-      if (live) {
-        void dbWrite(async () =>
-          await supabase.from("reward_proposals").delete().eq("household_id", hid()),
-        );
-        void dbWrite(async () =>
-          await supabase.from("households").update({ shared_pool: nextPool }).eq("id", hid()),
-        );
-      }
-      return chosen.name;
     },
     setRewardTarget: (n) => {
       setState((s) => ({ ...s, household: { ...s.household, rewardTarget: n } }));
       if (live) {
-        void dbWrite(async () =>
-          await supabase.from("households").update({ reward_target: n }).eq("id", hid()),
+        void dbWrite(
+          async () =>
+            await supabase.from("households").update({ reward_target: n }).eq("id", hid()),
         );
       }
     },
     setHouseholdName: (name) => {
       setState((s) => ({ ...s, household: { ...s.household, name } }));
       if (live) {
-        void dbWrite(async () =>
-          await supabase.from("households").update({ name }).eq("id", hid()),
+        void dbWrite(
+          async () => await supabase.from("households").update({ name }).eq("id", hid()),
         );
       }
     },
@@ -717,8 +761,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     completeOnboarding: () => {
       setState((s) => ({ ...s, household: { ...s.household, onboarded: true } }));
       if (live) {
-        void dbWrite(async () =>
-          await supabase.from("households").update({ onboarded: true }).eq("id", hid()),
+        void dbWrite(
+          async () => await supabase.from("households").update({ onboarded: true }).eq("id", hid()),
         );
       }
     },
@@ -746,23 +790,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
               all_time_points: 0,
               points: 0,
               avatar_key: companionId ?? null,
-            } as any),
+            } as never),
           [id],
         );
       }
     },
     removeKid: (id) => {
+      // Scrub the kid from any assignment allow-lists. If they were the only
+      // assigned kid the list becomes empty, which reads as universal again —
+      // better than a chore that silently applies to nobody.
+      const scrub = <T extends { assignedKidIds?: string[] | null }>(item: T): T =>
+        item.assignedKidIds?.includes(id)
+          ? { ...item, assignedKidIds: item.assignedKidIds.filter((k) => k !== id) }
+          : item;
       setState((s) => ({
         ...s,
         kids: s.kids.filter((k) => k.id !== id),
         history: s.history.filter((e) => e.kidId !== id),
-        // Also drop proposals this kid made, and their votes on remaining ones.
-        proposals: s.proposals
-          .filter((p) => p.proposedByKidId !== id)
-          .map((p) => ({ ...p, votes: p.votes.filter((v) => v !== id) })),
+        chores: s.chores.map(scrub),
+        skills: s.skills.map(scrub),
       }));
       if (live) {
         void dbWrite(async () => await supabase.from("kids").delete().eq("id", id));
+        // Persist the allow-list scrub for affected rows.
+        for (const c of chores) {
+          if (c.assignedKidIds?.includes(id)) {
+            const next = c.assignedKidIds.filter((k) => k !== id);
+            void dbWrite(
+              async () =>
+                await supabase
+                  .from("chores")
+                  .update({ assigned_kid_ids: next.length ? next : null } as never)
+                  .eq("id", c.id),
+            );
+          }
+        }
+        for (const sk of skills) {
+          if (sk.assignedKidIds?.includes(id)) {
+            const next = sk.assignedKidIds.filter((k) => k !== id);
+            void dbWrite(
+              async () =>
+                await supabase
+                  .from("skills")
+                  .update({ assigned_kid_ids: next.length ? next : null } as never)
+                  .eq("id", sk.id),
+            );
+          }
+        }
       }
     },
     exportData: () =>

@@ -12,11 +12,13 @@ const db = supabase as unknown as SupabaseClient;
 
 export type Memory = {
   id: string;
-  url: string; // public URL (remote) or data URL (local)
+  url: string; // signed URL (remote) or data URL (local); "" for media-less posts
   caption: string;
   kidIds: string[];
   createdAt: number;
   remote: boolean;
+  kind?: "image" | "video"; // undefined = no media (caption/voice-only post)
+  storagePath?: string; // path inside the memories bucket (remote posts)
   audioUrl?: string; // signed URL for audio playback
   audioPath?: string; // storage path
 };
@@ -135,24 +137,31 @@ async function signedUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
+// The bucket's RLS policies grant access by the first folder segment
+// (is_member(foldername[1])), so every object path MUST start with the
+// household id — bare root-level paths are silently denied in live mode.
 async function remoteUpload(
   id: string,
   householdId: string,
-  blob: Blob,
+  media: { blob: Blob; kind: "image" | "video"; contentType: string; ext: string } | null,
   caption: string,
   kidIds: string[],
-): Promise<string> {
-  const path = `${id}.jpg`;
-  const up = await withTimeout(
-    db.storage.from("memories").upload(path, blob, { contentType: "image/jpeg" }),
-  );
-  if (up.error) throw up.error;
+): Promise<{ url: string; path: string | null }> {
+  let path: string | null = null;
+  if (media) {
+    path = `${householdId}/${id}.${media.ext}`;
+    const up = await withTimeout(
+      db.storage.from("memories").upload(path, media.blob, { contentType: media.contentType }),
+    );
+    if (up.error) throw up.error;
+  }
   const ins = await withTimeout(
     Promise.resolve(
       db.from("memory_posts").insert({
         id,
         household_id: householdId,
         storage_path: path,
+        media_type: media?.kind ?? null,
         caption,
         // kid_ids stored via memory_post_kids table
       }),
@@ -163,22 +172,22 @@ async function remoteUpload(
   if (kidIds.length > 0) {
     await withTimeout(
       Promise.resolve(
-        db.from("memory_post_kids").insert(
-          kidIds.map((kidId) => ({ post_id: id, kid_id: kidId })),
-        ),
+        db.from("memory_post_kids").insert(kidIds.map((kidId) => ({ post_id: id, kid_id: kidId }))),
       ),
-    ).catch(() => { /* kid tagging best-effort */ });
+    ).catch(() => {
+      /* kid tagging best-effort */
+    });
   }
-  return signedUrl(path);
+  return { url: path ? await signedUrl(path) : "", path };
 }
 
-/** Upload an audio blob to storage */
+/** Upload an audio blob to storage (household-prefixed — see RLS note above). */
 async function remoteUploadAudio(
   householdId: string,
   blob: Blob,
 ): Promise<{ path: string; signedUrl: string }> {
   const id = uid();
-  const path = `audio/${id}.webm`;
+  const path = `${householdId}/audio/${id}.webm`;
   const up = await withTimeout(
     db.storage.from("memories").upload(path, blob, { contentType: "audio/webm" }),
   );
@@ -207,14 +216,27 @@ async function loadOnce() {
     const local = await idbAll();
     memories = sortWall(local);
     emit();
-  } catch { /* IndexedDB unavailable */ }
+  } catch {
+    /* IndexedDB unavailable */
+  }
 
   try {
     const res = await withTimeout(
-      Promise.resolve(db.from("memory_posts").select("id, storage_path, caption, audio_path, created_at")),
+      Promise.resolve(
+        db
+          .from("memory_posts")
+          .select("id, storage_path, media_type, caption, audio_path, created_at"),
+      ),
     );
     if (!res.error && res.data) {
-      type Row = { id: string; storage_path: string; caption: string | null; audio_path: string | null; created_at: string };
+      type Row = {
+        id: string;
+        storage_path: string | null;
+        media_type: "image" | "video" | null;
+        caption: string | null;
+        audio_path: string | null;
+        created_at: string;
+      };
       // Also fetch kid tags
       const { data: kidLinks } = await withTimeout(
         Promise.resolve(db.from("memory_post_kids").select("post_id, kid_id")),
@@ -229,11 +251,13 @@ async function loadOnce() {
       const remote: Memory[] = await Promise.all(
         (res.data as Row[]).map(async (r) => ({
           id: r.id,
-          url: await signedUrl(r.storage_path).catch(() => ""),
+          url: r.storage_path ? await signedUrl(r.storage_path).catch(() => "") : "",
           caption: r.caption ?? "",
           kidIds: tagMap[r.id] ?? [],
           createdAt: new Date(r.created_at).getTime(),
           remote: true,
+          kind: r.media_type ?? (r.storage_path ? ("image" as const) : undefined),
+          storagePath: r.storage_path ?? undefined,
           audioPath: r.audio_path ?? undefined,
           audioUrl: r.audio_path ? await signedUrl(r.audio_path).catch(() => undefined) : undefined,
         })),
@@ -242,18 +266,48 @@ async function loadOnce() {
       memories = sortWall([...memories, ...remote.filter((m) => !localIds.has(m.id))]);
       emit();
     }
-  } catch { /* offline / backend not wired */ }
+  } catch {
+    /* offline / backend not wired */
+  }
+}
+
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+
+function fileToDataUrl(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
 }
 
 export async function addMemory(
   householdId: string,
-  file: File,
+  file: File | null,
   caption: string,
   kidIds: string[],
   audioBlob?: Blob,
 ): Promise<Memory> {
   const id = uid();
-  const { blob, dataUrl } = await downscale(file);
+
+  // Prepare the media (if any): images are downscaled, short videos pass
+  // through as-is. Caption-/voice-only posts have no media at all.
+  let media: { blob: Blob; kind: "image" | "video"; contentType: string; ext: string } | null =
+    null;
+  let localUrl = "";
+  if (file) {
+    if (file.type.startsWith("video/")) {
+      if (file.size > MAX_VIDEO_BYTES) throw new Error("video too large");
+      const ext = file.type.includes("mp4") ? "mp4" : "webm";
+      media = { blob: file, kind: "video", contentType: file.type, ext };
+      localUrl = await fileToDataUrl(file);
+    } else {
+      const { blob, dataUrl } = await downscale(file);
+      media = { blob, kind: "image", contentType: "image/jpeg", ext: "jpg" };
+      localUrl = dataUrl;
+    }
+  }
 
   let memory: Memory;
   try {
@@ -264,19 +318,47 @@ export async function addMemory(
       audioPath = aud.path;
       audioUrl = aud.signedUrl;
     }
-    const url = await remoteUpload(id, householdId, blob, caption, kidIds);
+    const up = await remoteUpload(id, householdId, media, caption, kidIds);
     // Update audio path on the post
     if (audioPath) {
       await withTimeout(
         Promise.resolve(db.from("memory_posts").update({ audio_path: audioPath }).eq("id", id)),
       ).catch(() => {});
     }
-    memory = { id, url, caption, kidIds, createdAt: Date.now(), remote: true, audioPath, audioUrl };
+    memory = {
+      id,
+      url: up.url,
+      caption,
+      kidIds,
+      createdAt: Date.now(),
+      remote: true,
+      kind: media?.kind,
+      storagePath: up.path ?? undefined,
+      audioPath,
+      audioUrl,
+    };
   } catch {
-    memory = { id, url: dataUrl, caption, kidIds, createdAt: Date.now(), remote: false };
+    // Offline / backend unreachable: keep it locally, voice note included, so
+    // nothing the child just said is silently dropped.
+    let audioUrl: string | undefined;
+    if (audioBlob) audioUrl = await fileToDataUrl(audioBlob).catch(() => undefined);
+    memory = {
+      id,
+      url: localUrl,
+      caption,
+      kidIds,
+      createdAt: Date.now(),
+      remote: false,
+      kind: media?.kind,
+      audioUrl,
+    };
   }
 
-  try { await idbPut(memory); } catch { /* session-only */ }
+  try {
+    await idbPut(memory);
+  } catch {
+    /* session-only */
+  }
   memories = sortWall([memory, ...memories]);
   emit();
   return memory;
@@ -286,44 +368,62 @@ export async function removeMemory(id: string): Promise<void> {
   const target = memories.find((m) => m.id === id);
   memories = memories.filter((m) => m.id !== id);
   emit();
-  try { await idbDelete(id); } catch { /* ignore */ }
+  try {
+    await idbDelete(id);
+  } catch {
+    /* ignore */
+  }
   if (target?.remote) {
     try {
       await withTimeout(Promise.resolve(db.from("memory_posts").delete().eq("id", id)));
-      await withTimeout(db.storage.from("memories").remove([`${id}.jpg`]));
+      if (target.storagePath) {
+        await withTimeout(db.storage.from("memories").remove([target.storagePath])).catch(() => {});
+      }
       if (target.audioPath) {
         await withTimeout(db.storage.from("memories").remove([target.audioPath])).catch(() => {});
       }
-    } catch { /* best-effort */ }
+    } catch {
+      /* best-effort */
+    }
   }
 }
 
-/** Transcribe audio via edge function */
+/** Transcribe a recording via the transcribe-memory edge function. The raw
+ *  transcript comes back verbatim (no auto-correction) and lands in the
+ *  caption field for the parent to edit — or leave exactly as spoken. */
 export async function transcribeAudio(
   blob: Blob,
   householdId: string,
+  durationSec?: number,
 ): Promise<string> {
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < buf.length; i += CHUNK) {
+    bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+  }
   const { data, error } = await supabase.functions.invoke("transcribe-memory", {
-    body: { householdId },
-    // The blob is sent as FormData via the edge function
+    body: {
+      householdId,
+      audioBase64: btoa(bin),
+      mimeType: blob.type || "audio/webm",
+      durationSec,
+    },
   });
-
-  // If the edge function expects a different format, fall back to local text
   if (error) throw new Error(error.message || "Transcription failed");
-
-  // Basic approach: send directly to a speech-to-text API
-  // For now, return empty so caller knows transcription wasn't available
-  return data?.text ?? "";
+  const out = data as { text?: string; error?: string } | null;
+  if (out?.error) throw new Error(out.error);
+  return out?.text ?? "";
 }
 
 /** Toggle a like (returns new state) */
-export async function toggleLike(
-  postId: string,
-  userId: string,
-  liked: boolean,
-): Promise<boolean> {
+export async function toggleLike(postId: string, userId: string, liked: boolean): Promise<boolean> {
   if (liked) {
-    const { error } = await db.from("memory_likes").delete().eq("post_id", postId).eq("user_id", userId);
+    const { error } = await db
+      .from("memory_likes")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", userId);
     if (error) console.error("Failed to unlike:", error.message);
     return false;
   } else {
@@ -334,11 +434,7 @@ export async function toggleLike(
 }
 
 /** Add a comment */
-export async function addComment(
-  postId: string,
-  userId: string,
-  body: string,
-): Promise<void> {
+export async function addComment(postId: string, userId: string, body: string): Promise<void> {
   const { error } = await db.from("memory_comments").insert({
     post_id: postId,
     user_id: userId,
@@ -356,11 +452,19 @@ export async function fetchPostFeedback(postId: string): Promise<{
   const uid = (await supabase.auth.getUser()).data.user?.id;
   const [likes, comments] = await Promise.all([
     db.from("memory_likes").select("user_id").eq("post_id", postId),
-    db.from("memory_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true }),
+    db
+      .from("memory_comments")
+      .select("*")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true }),
   ]);
   const likeRows = (likes.data ?? []) as { user_id: string }[];
   const commentRows = (comments.data ?? []) as {
-    id: string; post_id: string; user_id: string; body: string; created_at: string;
+    id: string;
+    post_id: string;
+    user_id: string;
+    body: string;
+    created_at: string;
   }[];
   return {
     likeCount: likeRows.length,
