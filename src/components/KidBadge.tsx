@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Flame } from "lucide-react";
 import { PASTEL_HEX, type Kid } from "@/lib/mock-data";
 import { CompanionAvatar } from "./CompanionAvatar";
 
@@ -51,11 +50,12 @@ export function KidBadge({
         {/* streak flame */}
         {streak >= 2 && (
           <div
-            className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 rounded-full bg-card px-1.5 py-0.5 shadow-md border border-border"
+            className="absolute -top-1.5 -right-1.5 rounded-full bg-sage/70 px-2 py-0.5 shadow-sm"
             title={`${streak}-day streak`}
           >
-            <Flame className="w-3 h-3 text-orange-500 animate-flame" fill="currentColor" />
-            <span className="text-[10px] font-bold leading-none text-orange-600">{streak}</span>
+            <span className="font-display text-[11px] font-bold leading-none text-foreground">
+              +{streak}
+            </span>
           </div>
         )}
       </div>
