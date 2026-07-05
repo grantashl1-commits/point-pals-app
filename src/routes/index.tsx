@@ -97,7 +97,7 @@ function HomePage() {
               kid={kid}
               size="lg"
               selected={selectedKids.includes(kid.id)}
-              streak={streakByKid[kid.id] ?? 0}
+              streak={mounted ? (streakByKid[kid.id] ?? 0) : 0}
               onClick={() => toggleKid(kid.id)}
             />
           ))}
@@ -153,8 +153,9 @@ function HomePage() {
         )}
       </section>
 
-      {/* Weekly recap */}
-      <WeeklyRecap />
+      {/* Weekly recap — client-only (derives from timestamps) to avoid an
+          SSR/hydration mismatch on the very first paint. */}
+      {mounted && <WeeklyRecap />}
 
       {/* Today's feed — live, most-recent-first */}
       <section>
