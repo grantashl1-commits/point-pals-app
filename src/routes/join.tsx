@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/lib/app-store";
 import { CheckCircle, XCircle, Loader2, LogIn, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/join")({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/join")({
 function JoinPage() {
   const { code } = Route.useSearch();
   const navigate = useNavigate();
+  const { refreshFromServer } = useApp();
   const [joinCode, setJoinCode] = useState(code ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -64,7 +66,8 @@ function JoinPage() {
     if (resultData?.ok) {
       setStatus("success");
       setMessage("You've joined the household! Redirecting…");
-      setTimeout(() => navigate({ to: "/" }), 2000);
+      await refreshFromServer();
+      setTimeout(() => navigate({ to: "/" }), 1500);
     } else {
       setStatus("error");
       setMessage(resultData?.error ?? "Could not accept invite. The code may be expired or invalid.");
