@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageLayout } from "@/components/PublicPageLayout";
-import faqHero from "@/assets/marketing/faq-hero.jpg";
 import {
   Accordion,
   AccordionItem,
@@ -420,8 +419,8 @@ function FaqPage() {
       <article className="mx-auto max-w-2xl md:max-w-6xl space-y-10">
         <header>
           <img
-            src={faqHero}
-            alt="A jar of marbles on a wooden shelf with question mark bubbles floating above"
+            src="https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/faq_page.jpeg"
+            alt="A jar of marbles on a wooden table with question mark bubbles floating above and a cup of tea nearby"
             width={1536}
             height={768}
             className="w-full h-auto rounded-3xl shadow-sm mb-6 md:max-h-[420px] md:object-cover"
