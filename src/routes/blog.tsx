@@ -5,7 +5,7 @@ import imgResearch from "@/assets/marketing/blog-research.jpg";
 import imgCharacters from "@/assets/marketing/blog-characters.jpg";
 import imgChoresFun from "@/assets/marketing/blog-chores-fun.jpg";
 import imgMarbleJar from "@/assets/marketing/blog-marble-jar.jpg";
-import imgScreenTime from "@/assets/marketing/blog-screen-time.jpg";
+
 import imgAgeChores from "@/assets/marketing/blog-age-chores.jpg";
 import sunnyImg from "@/assets/companions/sunny.png.asset.json";
 import pipImg from "@/assets/companions/pip.png.asset.json";
@@ -92,7 +92,7 @@ const POSTS = [
       "Looking for screen-free rewards for kids? Here are family-friendly chore reward ideas that encourage connection, confidence and positive behaviour.",
     keywords: "screen-free rewards for kids, chore rewards, kids reward system, positive parenting app, family rewards",
     title: "Why Screen Time Is Not the Best Reward for Chores",
-    image: imgScreenTime,
+    image: "https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/family_reading.jpeg",
     content: <ScreenTimePost />,
   },
   {
