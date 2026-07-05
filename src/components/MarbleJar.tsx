@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { playClink } from "@/lib/feedback";
+import { playClink, playChime } from "@/lib/feedback";
+import { PASTEL_HEX, type Kid, type PointEvent } from "@/lib/mock-data";
 
 // The marble jar — PointPals' emotional centrepiece (§3).
 //
@@ -14,6 +15,8 @@ import { playClink } from "@/lib/feedback";
 // animation stay smooth and off the React commit path.
 
 type Marble = {
+  id: string; // stable id derived from the originating event (Phase 1)
+  kidId: string;
   x: number;
   y: number;
   vx: number;
@@ -22,21 +25,101 @@ type Marble = {
   color: string;
   hue: string; // lighter highlight tint
   active: boolean;
+  // Dissolve animation state: when a marble's contributing event is undone
+  // (negative point removed a marble), it fades and shrinks over ~600ms
+  // before being spliced out — leaving space for the remaining marbles to
+  // roll into (§3 phase 2). null = not dissolving.
+  dissolveStart: number | null;
 };
 
-const MARBLE_PALETTE: [string, string][] = [
-  ["#8FC7EA", "#C3E2F5"], // sky
-  ["#F1D36A", "#F8E6A6"], // butter
-  ["#9CD08C", "#C6E7BC"], // sage
-  ["#EDA6B2", "#F6CBD3"], // blush
-  ["#B79BE0", "#D7C7F0"], // lilac
-  ["#E0B673", "#F0D6A8"], // sand
-  ["#84CFCB", "#B8E5E2"], // foam
-];
+// Slightly saturated versions of PASTEL_HEX so marbles read as coloured glass
+// against the cream background rather than washed-out pastels.
+const MARBLE_TINT: Record<string, [string, string]> = {
+  sky: ["#8FC7EA", "#C3E2F5"],
+  butter: ["#F1D36A", "#F8E6A6"],
+  sage: ["#9CD08C", "#C6E7BC"],
+  blush: ["#EDA6B2", "#F6CBD3"],
+  lilac: ["#B79BE0", "#D7C7F0"],
+  sand: ["#E0B673", "#F0D6A8"],
+  foam: ["#84CFCB", "#B8E5E2"],
+};
+
+const DEFAULT_TINT: [string, string] = ["#B79BE0", "#D7C7F0"];
+const DISSOLVE_MS = 600;
+
+// Build the deterministic desired marble list from the event log. Walking
+// chronologically means the marble stack ends up in the same order every time
+// the component re-renders — critical for stable ids so the diff below can
+// tell "this marble is new" from "this marble was already here". Positive
+// events push kid-coloured marbles; negatives pop them, preferring one of
+// that kid's own marbles first (§3 phase 1 — "who contributed").
+function buildDesired(
+  events: PointEvent[],
+  kids: Kid[],
+  target: number,
+  perMarble: number,
+  cap: number,
+): { id: string; kidId: string; color: string; hue: string }[] {
+  const kidColor = new Map<string, string>();
+  for (const k of kids) kidColor.set(k.id, k.color);
+
+  // Oldest first
+  const asc = [...events].sort((a, b) => a.at - b.at);
+
+  let pool = 0;
+  const list: { id: string; kidId: string; color: string; hue: string }[] = [];
+
+  for (const e of asc) {
+    const beforeCount = Math.round(pool / perMarble);
+    pool = Math.max(0, pool + e.points);
+    const afterCount = Math.min(
+      Math.round(pool / perMarble),
+      Math.round(target / perMarble),
+    );
+    let diff = afterCount - beforeCount;
+
+    const key = kidColor.get(e.kidId) ?? "lilac";
+    const tint = MARBLE_TINT[key] ?? DEFAULT_TINT;
+
+    if (diff > 0) {
+      for (let i = 0; i < diff; i++) {
+        list.push({
+          id: `${e.id}-${i}`,
+          kidId: e.kidId,
+          color: tint[0],
+          hue: tint[1],
+        });
+      }
+    } else if (diff < 0) {
+      let toRemove = -diff;
+      while (toRemove > 0 && list.length > 0) {
+        // Prefer removing one of this kid's own marbles (newest first),
+        // falling back to the newest marble regardless.
+        let idx = -1;
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (list[i].kidId === e.kidId) {
+            idx = i;
+            break;
+          }
+        }
+        if (idx < 0) idx = list.length - 1;
+        list.splice(idx, 1);
+        toRemove--;
+      }
+    }
+  }
+
+  // Cap: keep the newest `cap` marbles so an old jar full of ancient events
+  // doesn't stall the physics.
+  if (list.length > cap) list.splice(0, list.length - cap);
+  return list;
+}
 
 export function MarbleJar({
   value,
   target,
+  events,
+  kids,
   size = 260,
   reducedMotion = false,
   onFull,
@@ -44,6 +127,8 @@ export function MarbleJar({
 }: {
   value: number;
   target: number;
+  events: PointEvent[];
+  kids: Kid[];
   size?: number;
   reducedMotion?: boolean;
   onFull?: () => void;
@@ -53,9 +138,11 @@ export function MarbleJar({
   const wrapRef = useRef<HTMLDivElement>(null);
   const marbles = useRef<Marble[]>([]);
   const raf = useRef<number | null>(null);
-  const lastCount = useRef(0);
   const firedFull = useRef(false);
   const clinkAt = useRef(0);
+  // Guard so the initial hydration doesn't announce every pre-existing marble
+  // as a fresh drop (would spam the dull chime on page load).
+  const primed = useRef(false);
 
   // Effective render size: capped to the container width so the jar never
   // overflows a narrow screen, and re-measured on resize / orientation change
@@ -87,7 +174,6 @@ export function MarbleJar({
   // marbles represent proportional chunks so a full jar still means "reached".
   const cap = 90;
   const perMarble = target > cap ? target / cap : 1;
-  const shown = Math.min(Math.round(value / perMarble), Math.round(target / perMarble));
   const full = value >= target;
 
   useEffect(() => {
@@ -121,47 +207,72 @@ export function MarbleJar({
     const rFit = Math.sqrt((jarArea * 0.72) / (Math.max(totalTarget, 1) * Math.PI));
     const R = Math.max(4, Math.min(rFit, innerW / 5));
 
-    function spawn(color: [string, string]) {
+    function spawn(m: { id: string; kidId: string; color: string; hue: string }) {
       marbles.current.push({
+        id: m.id,
+        kidId: m.kidId,
         x: (left + right) / 2 + (Math.random() - 0.5) * innerW * 0.35,
         y: top - R,
         vx: (Math.random() - 0.5) * 0.6,
         vy: 0.5,
         r: R * (0.92 + Math.random() * 0.16),
-        color: color[0],
-        hue: color[1],
+        color: m.color,
+        hue: m.hue,
         active: true,
+        dissolveStart: null,
       });
     }
 
-    // Reconcile marble count with `shown`.
-    const diff = shown - lastCount.current;
-    if (diff > 0) {
-      for (let i = 0; i < diff; i++) {
-        const c = MARBLE_PALETTE[(lastCount.current + i) % MARBLE_PALETTE.length];
-        if (reducedMotion) {
-          // Place directly near the resting pile without animating.
-          marbles.current.push({
-            x: (left + right) / 2 + (Math.random() - 0.5) * innerW * 0.7,
-            y:
-              bottom -
-              R -
-              Math.random() * (bottom - top) * (lastCount.current / Math.max(totalTarget, 1)),
-            vx: 0,
-            vy: 0,
-            r: R * (0.92 + Math.random() * 0.16),
-            color: c[0],
-            hue: c[1],
-            active: true,
-          });
+    // Reconcile marbles against the desired set. Diff by stable id so we know
+    // which marbles are genuinely new (→ drop) vs which vanished (→ dissolve).
+    const desired = buildDesired(events, kids, target, perMarble, cap);
+    const desiredIds = new Set(desired.map((d) => d.id));
+    const currentIds = new Set(marbles.current.map((m) => m.id));
+
+    // Mark disappeared marbles for dissolve — do NOT splice yet; they animate
+    // out over DISSOLVE_MS. If we're not yet primed (first render), remove
+    // silently so we don't dull-chime every historical marble.
+    let dissolvedThisPass = 0;
+    for (const m of marbles.current) {
+      if (!desiredIds.has(m.id) && m.dissolveStart === null) {
+        if (!primed.current || reducedMotion) {
+          m.dissolveStart = performance.now() - DISSOLVE_MS; // instant
         } else {
-          spawn(c);
+          m.dissolveStart = performance.now();
+          dissolvedThisPass++;
         }
       }
-    } else if (diff < 0) {
-      marbles.current.splice(shown);
     }
-    lastCount.current = shown;
+    if (dissolvedThisPass > 0) {
+      // Dull "needs work" chime plays once per event batch — the marble is
+      // visibly dissolving to reinforce the same beat.
+      playChime("needs-work");
+    }
+
+    // Spawn new marbles in the order they appear in `desired`. Preserve the
+    // existing marbles' physics state; only the fresh ones drop from the top.
+    for (const d of desired) {
+      if (currentIds.has(d.id)) continue;
+      if (reducedMotion || !primed.current) {
+        // Place directly in the pile — no animation on initial hydration.
+        marbles.current.push({
+          id: d.id,
+          kidId: d.kidId,
+          x: (left + right) / 2 + (Math.random() - 0.5) * innerW * 0.7,
+          y: bottom - R - Math.random() * (bottom - top) * 0.6,
+          vx: 0,
+          vy: 0,
+          r: R * (0.92 + Math.random() * 0.16),
+          color: d.color,
+          hue: d.hue,
+          active: true,
+          dissolveStart: null,
+        });
+      } else {
+        spawn(d);
+      }
+    }
+    primed.current = true;
 
     function resolveWalls(m: Marble) {
       const rest = 0.34;
@@ -203,6 +314,17 @@ export function MarbleJar({
       const list = marbles.current;
       const g = 0.34; // gentler gravity — marbles float down calmly
       let energy = 0;
+
+      // Prune fully-dissolved marbles before physics — leaves a gap so the
+      // marbles above roll down naturally (§3 phase 2).
+      const now = performance.now();
+      for (let i = list.length - 1; i >= 0; i--) {
+        const m = list[i];
+        if (m.dissolveStart !== null && now - m.dissolveStart >= DISSOLVE_MS) {
+          list.splice(i, 1);
+        }
+      }
+
       for (const m of list) {
         m.vy += g;
         m.x += m.vx;
@@ -245,6 +367,9 @@ export function MarbleJar({
         m.vx *= 0.86;
         m.vy *= 0.98;
         energy += m.vx * m.vx + m.vy * m.vy;
+        // While dissolving keep the physics energy pot alive so the sim
+        // doesn't settle and freeze mid-fade.
+        if (m.dissolveStart !== null) energy += 1;
       }
       return energy;
     }
@@ -281,25 +406,37 @@ export function MarbleJar({
       ctx.clip();
 
       for (const m of marbles.current) {
+        // Dissolve: shrink + fade over DISSOLVE_MS, then splice (in step()).
+        let alpha = 1;
+        let scale = 1;
+        if (m.dissolveStart !== null) {
+          const t = Math.min(1, (performance.now() - m.dissolveStart) / DISSOLVE_MS);
+          alpha = 1 - t;
+          scale = 1 - t * 0.4;
+        }
+        if (alpha <= 0) continue;
+        ctx.globalAlpha = alpha;
+        const rr = m.r * scale;
         const grd = ctx.createRadialGradient(
-          m.x - m.r * 0.35,
-          m.y - m.r * 0.4,
-          m.r * 0.1,
+          m.x - rr * 0.35,
+          m.y - rr * 0.4,
+          rr * 0.1,
           m.x,
           m.y,
-          m.r,
+          rr,
         );
         grd.addColorStop(0, m.hue);
         grd.addColorStop(1, m.color);
         ctx.beginPath();
-        ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+        ctx.arc(m.x, m.y, rr, 0, Math.PI * 2);
         ctx.fillStyle = grd;
         ctx.fill();
         // glossy speck
         ctx.beginPath();
-        ctx.arc(m.x - m.r * 0.34, m.y - m.r * 0.38, m.r * 0.22, 0, Math.PI * 2);
+        ctx.arc(m.x - rr * 0.34, m.y - rr * 0.38, rr * 0.22, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(255,255,255,0.7)";
         ctx.fill();
+        ctx.globalAlpha = 1;
       }
       ctx.restore();
 
@@ -351,7 +488,7 @@ export function MarbleJar({
       const now = performance.now();
       if (!reducedMotion && now - clinkAt.current > 90) {
         for (const m of marbles.current) {
-          if (m.y > bottom - m.r * 1.4 && Math.abs(m.vy) > 2.2) {
+          if (m.dissolveStart === null && m.y > bottom - m.r * 1.4 && Math.abs(m.vy) > 2.2) {
             playClink((Math.random() - 0.5) * 260);
             clinkAt.current = now;
             break;
@@ -384,7 +521,7 @@ export function MarbleJar({
         raf.current = null;
       }
     };
-  }, [shown, renderSize, target, perMarble, reducedMotion]);
+  }, [events, kids, renderSize, target, perMarble, reducedMotion]);
 
   // Fire the "full" celebration exactly once when we cross the target.
   useEffect(() => {
