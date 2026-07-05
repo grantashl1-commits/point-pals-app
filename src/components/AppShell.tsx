@@ -2,7 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Home, Library, Sparkles, Gift, Settings } from "lucide-react";
 import { useApp } from "@/lib/app-store";
-import logoUrl from "@/assets/brand/pointpals-logo.png";
+import logoUrl from "@/assets/brand/pointpals-logo-points.png";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home },
