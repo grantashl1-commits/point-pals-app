@@ -825,7 +825,7 @@ function FamilyTab() {
       )}
 
       {/* Correction tool — manual points adjustment */}
-      <CorrectionSection kids={kids} onUpdate={(id, currentPoints) => updateKid(id, { currentPoints })} />
+      <CorrectionSection kids={kids} onUpdate={(id, patch) => updateKid(id, patch)} />
 
       {!editingId &&
         (adding ? (
