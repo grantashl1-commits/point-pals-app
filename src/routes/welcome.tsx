@@ -95,13 +95,10 @@ function WelcomePage() {
               <BadgeCheck className="h-3.5 w-3.5" /> Research-backed &amp; NZ-made
             </div>
             <h1 className="mt-4 font-display text-[2.5rem] sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight">
-              Chores that feel like a <GameWord />,
-              <br />
-              not a fight.
+              Chores that feel like a <GameWord />, not a fight.
             </h1>
             <p className="mt-5 text-lg text-foreground/80 max-w-xl">
-              PointPals turns everyday chores and good behaviour into points the whole family fills
-              a shared jar with together - then celebrates by choosing a reward as a team.
+              PointPals turns everyday chores and good behaviour into points your whole family pools into one shared jar — then you celebrate together by choosing a reward as a team.
             </p>
             <div className="mt-7 flex flex-col sm:flex-row items-start gap-3">
               <Link
