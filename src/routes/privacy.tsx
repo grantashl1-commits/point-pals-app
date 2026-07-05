@@ -79,8 +79,8 @@ function Privacy() {
       <H2>Contact</H2>
       <p>
         Email{" "}
-        <a className="underline" href="mailto:support@pointpals.app">
-          support@pointpals.app
+        <a className="underline" href="mailto:support@pointpals.co.nz">
+          support@pointpals.co.nz
         </a>{" "}
         for any privacy request or question.
       </p>

@@ -226,9 +226,12 @@ function WelcomePage() {
           <Link to="/contact" className="hover:text-foreground">
             Contact
           </Link>
+          <a href="mailto:support@pointpals.co.nz" className="hover:text-foreground">
+            support@pointpals.co.nz
+          </a>
         </div>
         <p className="text-xs text-muted-foreground">
-          © 2025 PointPals · Proudly made in New Zealand 🇳🇿
+          © 2026 PointPals · Proudly made in New Zealand
         </p>
       </footer>
       <ThemeTune />

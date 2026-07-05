@@ -7,7 +7,7 @@
 //   { household_id: "uuid", role: "viewer" | "contributor" }
 //
 // Returns:
-//   { code: "ABC123", url: "https://pointpals.app/join?code=ABC123" }
+//   { code: "ABC123", url: "https://pointpals.co.nz/join?code=ABC123" }
 //
 // Deploy: supabase functions deploy generate-invite
 // Secrets: none required (uses Supabase-managed auth)
@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: insertErr.message }, { status: 500 });
     }
 
-    const baseUrl = Deno.env.get("PUBLIC_SITE_URL") ?? "https://pointpals.app";
+    const baseUrl = Deno.env.get("PUBLIC_SITE_URL") ?? "https://pointpals.co.nz";
 
     return json({
       ok: true,

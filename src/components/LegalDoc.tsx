@@ -18,8 +18,8 @@ export function LegalDoc({
       <p className="mt-8 text-xs text-muted-foreground">
         This is a plain-language policy for a small independent app; it isn't legal advice.
         Questions?{" "}
-        <a className="underline" href="mailto:support@pointpals.app">
-          support@pointpals.app
+        <a className="underline" href="mailto:support@pointpals.co.nz">
+          support@pointpals.co.nz
         </a>
         .
       </p>

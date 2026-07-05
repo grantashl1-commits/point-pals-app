@@ -51,8 +51,8 @@ function Refunds() {
       <p>
         Payments are handled by Stripe. If you don't recognise a charge or believe there's an error,
         please contact us first at{" "}
-        <a className="underline" href="mailto:support@pointpals.app">
-          support@pointpals.app
+        <a className="underline" href="mailto:support@pointpals.co.nz">
+          support@pointpals.co.nz
         </a>{" "}
         — we can usually resolve it faster than a formal dispute. You retain the right to raise a
         chargeback with your bank or card provider; if you open a Stripe dispute, we'll respond
@@ -62,8 +62,8 @@ function Refunds() {
       <H2>How to request a refund</H2>
       <p>
         Email{" "}
-        <a className="underline" href="mailto:support@pointpals.app">
-          support@pointpals.app
+        <a className="underline" href="mailto:support@pointpals.co.nz">
+          support@pointpals.co.nz
         </a>{" "}
         from the address on your account, with the date and rough amount. We aim to reply within 2
         business days.

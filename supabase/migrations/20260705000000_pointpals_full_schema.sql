@@ -268,7 +268,7 @@ create policy reward_votes_all on public.reward_votes
 
 -- Memories bucket (for photo memory wall uploads)
 insert into storage.buckets (id, name, public)
-values ('memories', 'memories', true)
+values ('memories', 'memories', false)
 on conflict (id) do nothing;
 
 -- Assets bucket (for chore/skill PNG icons)

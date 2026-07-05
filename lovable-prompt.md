@@ -110,7 +110,7 @@ In the Settings route (`settings.tsx`), add a section called **"Extended Family"
     const res = await supabase.functions.invoke('generate-invite', {
       body: { household_id: household.id, role: 'viewer' },
     })
-    // res.url = "https://pointpals.app/join?code=ABC123"
+    // res.url = "https://pointpals.co.nz/join?code=ABC123"
     ```
   - Show the generated link with a "Copy link" button
 - List active invite codes (with expiry dates) so the admin can see what's pending

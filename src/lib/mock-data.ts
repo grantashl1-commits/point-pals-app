@@ -38,6 +38,7 @@ export type Chore = {
   color: PastelKey;
   points: number;
   recurrence: "none" | "daily" | "weekly";
+  tags: string[];
 };
 
 export type Skill = {
@@ -96,6 +97,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sage",
     points: 2,
     recurrence: "daily",
+    tags: ["Must Do"],
   },
   {
     id: "c2",
@@ -104,6 +106,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "butter",
     points: 1,
     recurrence: "daily",
+    tags: ["Must Do"],
   },
   {
     id: "c3",
@@ -112,6 +115,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "lilac",
     points: 1,
     recurrence: "daily",
+    tags: ["Must Do"],
   },
   {
     id: "c4",
@@ -120,6 +124,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sand",
     points: 2,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c5",
@@ -128,6 +133,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sky",
     points: 1,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c6",
@@ -136,6 +142,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sky",
     points: 2,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c7",
@@ -144,6 +151,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "lilac",
     points: 3,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c8",
@@ -152,6 +160,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sage",
     points: 2,
     recurrence: "daily",
+    tags: ["Must Do"],
   },
   {
     id: "c9",
@@ -160,6 +169,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sand",
     points: 3,
     recurrence: "daily",
+    tags: ["Must Do"],
   },
   {
     id: "c10",
@@ -168,6 +178,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sky",
     points: 1,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c11",
@@ -176,6 +187,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "blush",
     points: 1,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c12",
@@ -184,6 +196,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "butter",
     points: 1,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c13",
@@ -192,6 +205,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "lilac",
     points: 2,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c14",
@@ -200,6 +214,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "blush",
     points: 3,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c15",
@@ -208,6 +223,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sky",
     points: 2,
     recurrence: "daily",
+    tags: [],
   },
   {
     id: "c16",
@@ -216,6 +232,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "butter",
     points: 2,
     recurrence: "weekly",
+    tags: [],
   },
   {
     id: "c17",
@@ -224,6 +241,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sand",
     points: 2,
     recurrence: "weekly",
+    tags: [],
   },
   {
     id: "c18",
@@ -232,6 +250,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sky",
     points: 2,
     recurrence: "weekly",
+    tags: [],
   },
   {
     id: "c19",
@@ -240,6 +259,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "blush",
     points: 3,
     recurrence: "weekly",
+    tags: [],
   },
   {
     id: "c20",
@@ -248,6 +268,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "foam",
     points: 2,
     recurrence: "weekly",
+    tags: [],
   },
   {
     id: "c21",
@@ -256,6 +277,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "foam",
     points: 2,
     recurrence: "weekly",
+    tags: [],
   },
   {
     id: "c22",
@@ -264,6 +286,7 @@ export const INITIAL_CHORES: Chore[] = [
     color: "sage",
     points: 2,
     recurrence: "weekly",
+    tags: [],
   },
 ];
 

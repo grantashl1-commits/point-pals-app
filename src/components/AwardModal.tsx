@@ -1,36 +1,62 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { X, PlusCircle } from "lucide-react";
+import { X, PlusCircle, Search } from "lucide-react";
 import type { Kid } from "@/lib/mock-data";
 import { PASTEL_HEX } from "@/lib/mock-data";
 import { useApp } from "@/lib/app-store";
 import { CompanionAvatar } from "./CompanionAvatar";
 import { IconTile } from "./IconTile";
 
-// ClassDojo-style award popup (§2): tap a kid's avatar → this modal opens with
-// the kid's name in the header, an X to close, category tabs, and the tile grid
-// inside. Tapping a tile awards immediately (the chime is played by the caller
-// synchronously inside the tap gesture) and the modal STAYS OPEN for further
-// taps; X or backdrop closes it. Tiles no longer live on the Home page at all.
 export function AwardModal({
   kid,
   onAward,
   onClose,
 }: {
   kid: Kid;
-  // Must play the chime synchronously inside the tap handler (autoplay policy).
   onAward: (item: { name: string; icon: string; points: number }) => void;
   onClose: () => void;
 }) {
   const { chores, skills } = useApp();
   const [tab, setTab] = useState<"chores" | "positive" | "needs-work">("chores");
   const [pointsFlash, setPointsFlash] = useState(false);
+  const [search, setSearch] = useState("");
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const prevPoints = useRef(kid.points);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const positive = useMemo(() => skills.filter((s) => s.isPositive), [skills]);
   const needsWork = useMemo(() => skills.filter((s) => !s.isPositive), [skills]);
-  const list = tab === "chores" ? chores : tab === "positive" ? positive : needsWork;
+
+  // Collect all unique tags from chores for filter chips
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    chores.forEach((c) => (c.tags ?? []).forEach((t) => tagSet.add(t)));
+    return Array.from(tagSet).sort();
+  }, [chores]);
+
+  // Filter chores by search text and tag
+  const filteredChores = useMemo(() => {
+    let result = [...chores];
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter((c) => c.name.toLowerCase().includes(q));
+    }
+    if (tagFilter) {
+      result = result.filter((c) => (c.tags ?? []).includes(tagFilter));
+    }
+    return result;
+  }, [chores, search, tagFilter]);
+
+  // Filter skills by name (skills don't have tags)
+  const filteredSkills = useMemo(() => {
+    const items = tab === "positive" ? positive : needsWork;
+    if (!search.trim()) return items;
+    const q = search.trim().toLowerCase();
+    return items.filter((s) => s.name.toLowerCase().includes(q));
+  }, [positive, needsWork, search, tab]);
+
+  const list = tab === "chores" ? filteredChores : filteredSkills;
   const empty = chores.length === 0 && skills.length === 0;
 
   // Bounce the header point count when it changes.
@@ -54,6 +80,13 @@ export function AwardModal({
       document.body.style.overflow = prevOverflow;
     };
   }, [onClose]);
+
+  // Focus search when switching to chores tab
+  useEffect(() => {
+    if (tab === "chores") {
+      setTimeout(() => searchRef.current?.focus(), 100);
+    }
+  }, [tab]);
 
   return (
     <div
@@ -121,7 +154,11 @@ export function AwardModal({
             ].map((t) => (
               <button
                 key={t.k}
-                onClick={() => setTab(t.k as typeof tab)}
+                onClick={() => {
+                  setTab(t.k as typeof tab);
+                  setSearch("");
+                  setTagFilter(null);
+                }}
                 className={`px-4 py-1.5 rounded-full text-sm font-semibold transition ${
                   tab === t.k ? "bg-card shadow-sm" : "text-muted-foreground"
                 }`}
@@ -131,6 +168,49 @@ export function AwardModal({
             ))}
           </div>
         </div>
+
+        {/* Search + tag filters (only for chores tab) */}
+        {tab === "chores" && (
+          <div className="px-5 pt-3 space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                ref={searchRef}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search chores…"
+                className="w-full pl-9 pr-4 py-2 rounded-full bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            {allTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setTagFilter(null)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                    tagFilter === null
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  All
+                </button>
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                      tagFilter === tag
+                        ? "bg-foreground text-background"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* tile grid */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -150,7 +230,9 @@ export function AwardModal({
             </div>
           ) : list.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-10">
-              Nothing in this category yet.
+              {search || tagFilter
+                ? "Nothing matches your search or filter."
+                : "Nothing in this category yet."}
             </p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-5 justify-items-center">

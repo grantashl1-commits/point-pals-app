@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useApp } from "@/lib/app-store";
 import { useSettings, setSetting } from "@/lib/settings";
 import { Paywall } from "@/components/Paywall";
 import { trackParent } from "@/lib/analytics";
+import { supabase } from "@/integrations/supabase/client";
 import { PASTEL_HEX } from "@/lib/mock-data";
 import {
   Volume2,
@@ -15,6 +16,12 @@ import {
   Eye,
   Target,
   Sparkles,
+  Users,
+  Copy,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -30,13 +37,19 @@ export const Route = createFileRoute("/settings")({
   }),
 });
 
-const SUPPORT_EMAIL = "support@pointpals.app";
+const SUPPORT_EMAIL = "support@pointpals.co.nz";
 
 function SettingsPage() {
   const { household, kids, setHouseholdName, setRewardTarget, exportData, resetHousehold } =
     useApp();
   const settings = useSettings();
+  const navigate = useNavigate();
   const [name, setName] = useState(household.name);
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteRole, setInviteRole] = useState<"contributor" | "viewer">("contributor");
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   const exportJson = () => {
     trackParent("data_export");
@@ -109,6 +122,121 @@ function SettingsPage() {
               </span>
             </div>
           </label>
+        </div>
+      </section>
+
+      {/* Extended Family */}
+      <section className="space-y-3">
+        <SectionTitle icon={<Users className="h-4 w-4" />}>Extended family</SectionTitle>
+        <div className="card-soft p-5 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Generate an invite code so grandparents or other family members can join your
+            household. Contributors can award points and add memories; viewers see everything
+            but can't award.
+          </p>
+
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex gap-2">
+              {[
+                { value: "contributor" as const, label: "Can give points" },
+                { value: "viewer" as const, label: "View only" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setInviteRole(opt.value)}
+                  className={`tap px-4 py-1.5 rounded-full text-sm font-semibold transition ${
+                    inviteRole === opt.value
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={async () => {
+                setGenerating(true);
+                setInviteError(null);
+                setCopied(false);
+                try {
+                  const { data, error: fnErr } = await supabase.functions.invoke(
+                    "generate-invite",
+                    { body: { household_id: household.id, role: inviteRole } },
+                  );
+                  if (fnErr) throw fnErr;
+                  if (data.error) throw new Error(data.error);
+                  setInviteCode(data.code ?? data.invite_code ?? "");
+                } catch (err) {
+                  setInviteError(
+                    err instanceof Error ? err.message : "Failed to generate invite",
+                  );
+                } finally {
+                  setGenerating(false);
+                }
+              }}
+              disabled={generating}
+              className="tap rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold flex items-center gap-2 disabled:opacity-50"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Generating…
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" /> Generate invite
+                </>
+              )}
+            </button>
+          </div>
+
+          {inviteCode && (
+            <div className="flex items-center gap-3 card-soft p-3">
+              <code className="text-2xl font-display font-bold tracking-[0.3em] select-all">
+                {inviteCode}
+              </code>
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(inviteCode);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="tap rounded-full bg-muted p-2 hover:bg-muted/80 transition"
+                title="Copy code"
+              >
+                {copied ? (
+                  <CheckCircle className="w-4 h-4 text-sage-foreground" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          )}
+
+          {inviteCode && (
+            <div className="text-xs text-muted-foreground">
+              Share this link with your family member:
+              <br />
+              <button
+                onClick={async () => {
+                  const url = `${window.location.origin}/join?code=${inviteCode}`;
+                  await navigator.clipboard.writeText(url);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="tap text-foreground font-semibold underline underline-offset-2 hover:no-underline"
+              >
+                {window.location.origin}/join?code={inviteCode}
+              </button>
+            </div>
+          )}
+
+          {inviteError && (
+            <div className="flex items-center gap-2 text-destructive text-xs">
+              <XCircle className="w-4 h-4 shrink-0" />
+              <span>{inviteError}</span>
+            </div>
+          )}
         </div>
       </section>
 

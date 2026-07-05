@@ -76,8 +76,8 @@ function Terms() {
       <H2>Contact</H2>
       <p>
         Questions about these terms? Email{" "}
-        <a className="underline" href="mailto:support@pointpals.app">
-          support@pointpals.app
+        <a className="underline" href="mailto:support@pointpals.co.nz">
+          support@pointpals.co.nz
         </a>
         .
       </p>

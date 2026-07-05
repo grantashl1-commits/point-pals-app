@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/app-store";
 import { IconTile } from "@/components/IconTile";
 import { KidChartCard } from "@/components/KidChartCard";
@@ -8,7 +8,8 @@ import { CompanionAvatar } from "@/components/CompanionAvatar";
 import type { PastelKey } from "@/lib/mock-data";
 import { COMPANIONS, PASTEL_HEX } from "@/lib/mock-data";
 import { ICON_KEYS } from "@/lib/icons";
-import { Trash2, Sparkles, Pencil, X, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Trash2, Sparkles, Pencil, X, Check, Wand2 } from "lucide-react";
 
 export const Route = createFileRoute("/library")({
   component: LibraryPage,
@@ -25,9 +26,6 @@ export const Route = createFileRoute("/library")({
 
 const PALETTE: PastelKey[] = ["sky", "butter", "sage", "blush", "lilac", "sand", "foam"];
 
-// New items get a real icon-pack tile (i00–i65), not an emoji, so the printable
-// chart and tiles render a proper illustration. A deterministic hash of the
-// name keeps the same chore looking consistent run-to-run.
 function pickIconForName(name: string): string {
   if (ICON_KEYS.length === 0) return "i00";
   let h = 2166136261;
@@ -84,41 +82,21 @@ function LibraryPage() {
       </div>
 
       {tab === "chores" && (
-        <ItemManager
-          items={chores.map((c) => ({
-            id: c.id,
-            name: c.name,
-            icon: c.icon,
-            color: c.color,
-            points: c.points,
-          }))}
-          onAdd={(name, points, color) =>
-            addChore({ name, icon: pickIconForName(name), color, points, recurrence: "none" })
-          }
-          onUpdate={(id, patch) => updateChore(id, patch)}
-          onRemove={removeChore}
-          addLabel="Add chore"
-          pointsMin={1}
-          pointsMax={20}
-          defaultPoints={1}
+        <ChoreManager
+          chores={chores}
+          addChore={addChore}
+          updateChore={updateChore}
+          removeChore={removeChore}
         />
       )}
       {tab === "positive" && (
-        <ItemManager
-          items={skills
-            .filter((s) => s.isPositive)
-            .map((s) => ({
-              id: s.id,
-              name: s.name,
-              icon: s.icon,
-              color: s.color,
-              points: s.points,
-            }))}
-          onAdd={(name, points, color) =>
+        <SkillManager
+          skills={skills.filter((s) => s.isPositive)}
+          addSkill={(name, points, color) =>
             addSkill({ name, icon: pickIconForName(name), color, points, isPositive: true })
           }
-          onUpdate={(id, patch) => updateSkill(id, patch)}
-          onRemove={removeSkill}
+          updateSkill={updateSkill}
+          removeSkill={removeSkill}
           addLabel="Add positive skill"
           pointsMin={1}
           pointsMax={20}
@@ -126,21 +104,13 @@ function LibraryPage() {
         />
       )}
       {tab === "needs-work" && (
-        <ItemManager
-          items={skills
-            .filter((s) => !s.isPositive)
-            .map((s) => ({
-              id: s.id,
-              name: s.name,
-              icon: s.icon,
-              color: s.color,
-              points: s.points,
-            }))}
-          onAdd={(name, points, color) =>
+        <SkillManager
+          skills={skills.filter((s) => !s.isPositive)}
+          addSkill={(name, points, color) =>
             addSkill({ name, icon: pickIconForName(name), color, points, isPositive: false })
           }
-          onUpdate={(id, patch) => updateSkill(id, patch)}
-          onRemove={removeSkill}
+          updateSkill={updateSkill}
+          removeSkill={removeSkill}
           addLabel="Add behaviour"
           muted
           pointsMin={-20}
@@ -153,24 +123,247 @@ function LibraryPage() {
   );
 }
 
-type Item = { id: string; name: string; icon: string; color: PastelKey; points: number };
-type ItemPatch = { name?: string; points?: number; color?: PastelKey };
+// ─── Chore Manager ───────────────────────────────────────────────────────────
 
-function ItemManager({
-  items,
-  onAdd,
-  onUpdate,
-  onRemove,
+type ChoreItem = {
+  id: string;
+  name: string;
+  icon: string;
+  color: PastelKey;
+  points: number;
+  tags: string[];
+};
+
+type ItemPatch = { name?: string; points?: number; color?: PastelKey; tags?: string[] };
+
+function ChoreManager({
+  chores,
+  addChore,
+  updateChore,
+  removeChore,
+}: {
+  chores: { id: string; name: string; icon: string; color: PastelKey; points: number; tags: string[] }[];
+  addChore: (c: { name: string; icon: string; color: PastelKey; points: number; recurrence: string; tags?: string[] }) => void;
+  updateChore: (id: string, patch: ItemPatch) => void;
+  removeChore: (id: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [points, setPoints] = useState(1);
+  const [color, setColor] = useState<PastelKey>("sky");
+  const [tagsStr, setTagsStr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editPanelRef = useRef<HTMLDivElement>(null);
+  const [aiPanel, setAiPanel] = useState(false);
+
+  const clampPoints = (n: number) => Math.max(1, Math.min(20, n));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    await new Promise((r) => setTimeout(r, 300));
+    const tags = tagsStr
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    addChore({
+      name: name.trim(),
+      icon: pickIconForName(name.trim()),
+      color,
+      points: clampPoints(points),
+      recurrence: "none",
+      tags,
+    });
+    setName("");
+    setPoints(1);
+    setColor("sky");
+    setTagsStr("");
+    setBusy(false);
+  };
+
+  // Auto-scroll edit panel into view on mobile
+  useEffect(() => {
+    if (editingId && editPanelRef.current) {
+      setTimeout(() => {
+        editPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 100);
+    }
+  }, [editingId]);
+
+  return (
+    <div className="space-y-6">
+      {/* Add form */}
+      <form onSubmit={submit} className="card-soft p-4 space-y-3">
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-[180px]">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Name
+            </label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Put away dishes"
+              className="w-full mt-1 bg-transparent border-b border-border py-1.5 focus:outline-none focus:border-foreground"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Points
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={points}
+              onChange={(e) => setPoints(clampPoints(Number(e.target.value)))}
+              className="w-20 mt-1 bg-transparent border-b border-border py-1.5 focus:outline-none focus:border-foreground font-display font-bold text-lg"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={busy || !name.trim()}
+            className="tap rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold flex items-center gap-2 disabled:opacity-50"
+          >
+            <Sparkles className="w-4 h-4" />
+            {busy ? "Adding…" : "Add chore"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAiPanel(!aiPanel)}
+            className="tap rounded-full border border-input bg-card px-5 py-2.5 text-sm font-semibold flex items-center gap-2 hover:bg-muted transition"
+          >
+            <Wand2 className="w-4 h-4" />
+            AI icon
+          </button>
+        </div>
+
+        {/* AI icon generation panel */}
+        {aiPanel && (
+          <AiIconPanel
+            householdId={useApp().household.id}
+            onSelect={(iconUrl) => {
+              // icon will be used by caller after add
+              setAiPanel(false);
+            }}
+            onClose={() => setAiPanel(false)}
+          />
+        )}
+
+        <div className="flex flex-wrap gap-2 items-center">
+          {PALETTE.map((c) => (
+            <button
+              type="button"
+              key={c}
+              onClick={() => setColor(c)}
+              className={`w-7 h-7 rounded-full transition ${color === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}
+              style={{ backgroundColor: PASTEL_HEX[c] }}
+              aria-label={c}
+            />
+          ))}
+          <div className="flex-1 min-w-[160px] ml-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Tags
+            </label>
+            <input
+              value={tagsStr}
+              onChange={(e) => setTagsStr(e.target.value)}
+              placeholder="e.g. Must Do, Morning"
+              className="w-full mt-1 bg-transparent border-b border-border py-1.5 focus:outline-none focus:border-foreground text-sm"
+            />
+          </div>
+        </div>
+      </form>
+
+      {chores.length === 0 && (
+        <div className="card-soft px-6 py-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Nothing here yet — add your first chore above to start tracking it.
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-2 gap-y-6 justify-items-center">
+        {chores.map((it) => (
+          <div key={it.id} className="w-full flex flex-col items-center">
+            <div className="tap relative">
+              <IconTile
+                icon={it.icon}
+                label={it.name}
+                color={it.color}
+                points={it.points}
+                onClick={() => setEditingId(editingId === it.id ? null : it.id)}
+                selected={editingId === it.id}
+              />
+              <span
+                className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-card border border-border shadow flex items-center justify-center pointer-events-none"
+                aria-hidden
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </span>
+              {it.tags && it.tags.length > 0 && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-card/90 px-1.5 py-0.5 rounded-full border border-border whitespace-nowrap">
+                  {it.tags[0]}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {editingId && (() => {
+        const item = chores.find((i) => i.id === editingId);
+        if (!item) return null;
+        return (
+          <div ref={editPanelRef}>
+            <EditPanel
+              item={item}
+              pointsMin={1}
+              pointsMax={20}
+              onSave={(patch) => {
+                updateChore(editingId, patch);
+                setEditingId(null);
+              }}
+              onDelete={() => {
+                if (item && window.confirm(`Delete "${item.name}"?`)) {
+                  removeChore(editingId);
+                  setEditingId(null);
+                }
+              }}
+              onCancel={() => setEditingId(null)}
+            />
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ─── Skill Manager ───────────────────────────────────────────────────────────
+
+type SkillItem = {
+  id: string;
+  name: string;
+  icon: string;
+  color: PastelKey;
+  points: number;
+};
+
+function SkillManager({
+  skills,
+  addSkill,
+  updateSkill,
+  removeSkill,
   addLabel,
   muted = false,
   pointsMin,
   pointsMax,
   defaultPoints,
 }: {
-  items: Item[];
-  onAdd: (name: string, points: number, color: PastelKey) => void;
-  onUpdate: (id: string, patch: ItemPatch) => void;
-  onRemove: (id: string) => void;
+  skills: SkillItem[];
+  addSkill: (name: string, points: number, color: PastelKey) => void;
+  updateSkill: (id: string, patch: ItemPatch) => void;
+  removeSkill: (id: string) => void;
   addLabel: string;
   muted?: boolean;
   pointsMin: number;
@@ -182,6 +375,8 @@ function ItemManager({
   const [color, setColor] = useState<PastelKey>("sky");
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const editPanelRef = useRef<HTMLDivElement>(null);
+  const [aiPanel, setAiPanel] = useState(false);
 
   const clampPoints = (n: number) => Math.max(pointsMin, Math.min(pointsMax, n));
 
@@ -190,12 +385,20 @@ function ItemManager({
     if (!name.trim()) return;
     setBusy(true);
     await new Promise((r) => setTimeout(r, 300));
-    onAdd(name.trim(), clampPoints(points), color);
+    addSkill(name.trim(), clampPoints(points), color);
     setName("");
     setPoints(defaultPoints);
     setColor("sky");
     setBusy(false);
   };
+
+  useEffect(() => {
+    if (editingId && editPanelRef.current) {
+      setTimeout(() => {
+        editPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 100);
+    }
+  }, [editingId]);
 
   return (
     <div className="space-y-6">
@@ -233,7 +436,24 @@ function ItemManager({
             <Sparkles className="w-4 h-4" />
             {busy ? "Adding…" : addLabel}
           </button>
+          <button
+            type="button"
+            onClick={() => setAiPanel(!aiPanel)}
+            className="tap rounded-full border border-input bg-card px-5 py-2.5 text-sm font-semibold flex items-center gap-2 hover:bg-muted transition"
+          >
+            <Wand2 className="w-4 h-4" />
+            AI icon
+          </button>
         </div>
+
+        {aiPanel && (
+          <AiIconPanel
+            householdId={useApp().household.id}
+            onSelect={() => setAiPanel(false)}
+            onClose={() => setAiPanel(false)}
+          />
+        )}
+
         <div className="flex gap-2">
           {PALETTE.map((c) => (
             <button
@@ -248,7 +468,7 @@ function ItemManager({
         </div>
       </form>
 
-      {items.length === 0 && (
+      {skills.length === 0 && (
         <div className="card-soft px-6 py-10 text-center">
           <p className="text-sm text-muted-foreground">
             Nothing here yet — add your first one above to start tracking it.
@@ -257,51 +477,139 @@ function ItemManager({
       )}
 
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-2 gap-y-6 justify-items-center">
-        {items.map((it) => (
+        {skills.map((it) => (
           <div key={it.id} className="w-full flex flex-col items-center">
-            <button
-              type="button"
-              onClick={() => setEditingId(editingId === it.id ? null : it.id)}
-              className="tap relative"
-              aria-label={`Edit ${it.name}`}
-            >
+            <div className="tap relative">
               <IconTile
                 icon={it.icon}
                 label={it.name}
                 color={it.color}
                 points={it.points}
                 muted={muted}
+                onClick={() => setEditingId(editingId === it.id ? null : it.id)}
+                selected={editingId === it.id}
               />
-              <span className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-card border border-border shadow flex items-center justify-center">
+              <span
+                className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-card border border-border shadow flex items-center justify-center pointer-events-none"
+                aria-hidden
+              >
                 <Pencil className="w-3.5 h-3.5" />
               </span>
-            </button>
+            </div>
           </div>
         ))}
       </div>
 
-      {editingId && (
-        <EditPanel
-          item={items.find((i) => i.id === editingId)!}
-          pointsMin={pointsMin}
-          pointsMax={pointsMax}
-          onSave={(patch) => {
-            onUpdate(editingId, patch);
-            setEditingId(null);
-          }}
-          onDelete={() => {
-            const it = items.find((i) => i.id === editingId);
-            if (it && window.confirm(`Delete "${it.name}"?`)) {
-              onRemove(editingId);
-              setEditingId(null);
-            }
-          }}
-          onCancel={() => setEditingId(null)}
+      {editingId && (() => {
+        const item = skills.find((i) => i.id === editingId);
+        if (!item) return null;
+        return (
+          <div ref={editPanelRef}>
+            <EditPanel
+              item={item}
+              pointsMin={pointsMin}
+              pointsMax={pointsMax}
+              onSave={(patch) => {
+                updateSkill(editingId, patch);
+                setEditingId(null);
+              }}
+              onDelete={() => {
+                if (item && window.confirm(`Delete "${item.name}"?`)) {
+                  removeSkill(editingId);
+                  setEditingId(null);
+                }
+              }}
+              onCancel={() => setEditingId(null)}
+              tags={false}
+            />
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ─── AI Icon Generation Panel ────────────────────────────────────────────────
+
+function AiIconPanel({
+  householdId,
+  onSelect,
+  onClose,
+}: {
+  householdId: string;
+  onSelect: (iconUrl: string) => void;
+  onClose: () => void;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const generate = async () => {
+    if (!prompt.trim()) return;
+    setGenerating(true);
+    setError(null);
+    setResult(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-icon", {
+        body: { householdId, prompt: prompt.trim() },
+      });
+      if (fnErr) throw fnErr;
+      if (data.error) throw new Error(data.error);
+      console.log("Icon generated:", data);
+      setResult(data.storagePath);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div className="card-soft p-4 space-y-3 border border-dashed border-muted-foreground/30 animate-pop-in">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold flex items-center gap-2">
+          <Wand2 className="w-4 h-4" /> Generate icon with AI
+        </h4>
+        <button onClick={onClose} className="tap text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Describe the icon you want — e.g. "a dog brushing its teeth"
+      </p>
+      <div className="flex gap-2">
+        <input
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Describe the icon..."
+          className="flex-1 bg-transparent border-b border-border py-1.5 focus:outline-none focus:border-foreground text-sm"
+          onKeyDown={(e) => e.key === "Enter" && generate()}
         />
+        <button
+          onClick={generate}
+          disabled={generating || !prompt.trim()}
+          className="tap rounded-full bg-foreground text-background px-4 py-2 text-sm font-semibold disabled:opacity-50 flex items-center gap-1.5"
+        >
+          {generating ? (
+            <span className="animate-spin">⟳</span>
+          ) : (
+            <Wand2 className="w-3.5 h-3.5" />
+          )}
+          {generating ? "Generating…" : "Generate"}
+        </button>
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      {result && (
+        <p className="text-xs text-sage-foreground">
+          Icon generated! (path: {result})
+        </p>
       )}
     </div>
   );
 }
+
+// ─── Edit Panel (shared between chores & skills) ──────────────────────────────
 
 function EditPanel({
   item,
@@ -310,24 +618,27 @@ function EditPanel({
   onSave,
   onDelete,
   onCancel,
+  tags: showTags = true,
 }: {
-  item: Item;
+  item: { id: string; name: string; icon: string; color: PastelKey; points: number; tags?: string[] };
   pointsMin: number;
   pointsMax: number;
   onSave: (patch: ItemPatch) => void;
   onDelete: () => void;
   onCancel: () => void;
+  tags?: boolean;
 }) {
   const [name, setName] = useState(item.name);
   const [points, setPoints] = useState(item.points);
   const [color, setColor] = useState<PastelKey>(item.color);
+  const [tagsStr, setTagsStr] = useState((item.tags ?? []).join(", "));
 
-  // Re-sync when a different item opens the panel.
   useEffect(() => {
     setName(item.name);
     setPoints(item.points);
     setColor(item.color);
-  }, [item.id, item.name, item.points, item.color]);
+    setTagsStr((item.tags ?? []).join(", "));
+  }, [item.id, item.name, item.points, item.color, item.tags]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
@@ -370,11 +681,28 @@ function EditPanel({
             min={pointsMin}
             max={pointsMax}
             value={points}
-            onChange={(e) => setPoints(Number(e.target.value))}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (!isNaN(n)) setPoints(clamp(n));
+            }}
             className="w-24 mt-1 bg-transparent border-b border-border py-1.5 focus:outline-none focus:border-foreground font-display font-bold text-2xl"
           />
         </div>
       </div>
+
+      {showTags && (
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Tags
+          </label>
+          <input
+            value={tagsStr}
+            onChange={(e) => setTagsStr(e.target.value)}
+            placeholder="e.g. Must Do, Morning"
+            className="w-full mt-1 bg-transparent border-b border-border py-1.5 focus:outline-none focus:border-foreground text-sm"
+          />
+        </div>
+      )}
 
       <div>
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -409,9 +737,17 @@ function EditPanel({
             Cancel
           </button>
           <button
-            onClick={() =>
-              name.trim() && onSave({ name: name.trim(), points: clamp(points), color })
-            }
+            onClick={() => {
+              if (!name.trim()) return;
+              const patch: ItemPatch = { name: name.trim(), points: clamp(points), color };
+              if (showTags) {
+                patch.tags = tagsStr
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean);
+              }
+              onSave(patch);
+            }}
             disabled={!name.trim()}
             className="tap inline-flex items-center gap-1.5 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
           >
@@ -422,6 +758,8 @@ function EditPanel({
     </div>
   );
 }
+
+// ─── Family Tab ──────────────────────────────────────────────────────────────
 
 function FamilyTab() {
   const { kids, addKid, updateKid, removeKid } = useApp();
