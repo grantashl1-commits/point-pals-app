@@ -12,6 +12,8 @@ export function isRootTab(pathname: string): boolean {
 const TITLES: Record<string, string> = {
   "/settings": "Settings",
   "/about": "About",
+  "/faq": "FAQ",
+  "/blog": "Blog",
   "/onboarding": "Set up",
   "/privacy": "Privacy",
   "/terms": "Terms",

@@ -209,7 +209,13 @@ function WelcomePage() {
       <footer className="max-w-4xl mx-auto px-6 pb-10 text-center space-y-3">
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
           <Link to="/about" className="hover:text-foreground">
-            About
+            Research
+          </Link>
+          <Link to="/faq" className="hover:text-foreground">
+            FAQ
+          </Link>
+          <Link to="/blog" className="hover:text-foreground">
+            Blog
           </Link>
           <Link to="/privacy" className="hover:text-foreground">
             Privacy

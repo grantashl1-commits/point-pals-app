@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pct = Math.min(100, (household.sharedPool / household.rewardTarget) * 100);
 
   // Chrome-free routes: marketing page + auth pages.
-  const CHROME_FREE = ["/welcome", "/sign-in", "/sign-up", "/reset-password"];
+  const CHROME_FREE = ["/welcome", "/sign-in", "/sign-up", "/reset-password", "/about", "/faq", "/blog"];
   if (CHROME_FREE.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return <>{children}</>;
   }
