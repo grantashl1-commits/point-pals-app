@@ -13,6 +13,8 @@ import {
   Check,
   Video,
   Play,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useApp } from "@/lib/app-store";
 import { useHouseholdRole } from "@/lib/use-household-role";
@@ -25,7 +27,7 @@ import {
   fetchPostFeedback,
   transcribeAudio,
 } from "@/lib/memories";
-import type { MemoryCommentEntry } from "@/lib/memories";
+import type { MemoryCommentEntry, MemoryMedia } from "@/lib/memories";
 import { PASTEL_HEX, type PastelKey } from "@/lib/mock-data";
 import { CompanionAvatar } from "@/components/CompanionAvatar";
 import { trackParent } from "@/lib/analytics";
@@ -45,6 +47,8 @@ export const Route = createFileRoute("/_authenticated/memories")({
 
 // v2: quick child narration, not a voice memo — 90 s is plenty.
 const MAX_RECORDING_SEC = 90;
+
+const MAX_MEDIA_PER_POST = 10;
 
 function MemoriesPage() {
   const { kids, household } = useApp();
@@ -107,8 +111,9 @@ function Composer({
   householdId: string;
   kids: { id: string; name: string; color: string; companionId?: string }[];
 }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<{ url: string; isVideo: boolean }[]>([]);
+  const [pickError, setPickError] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [taggedIds, setTaggedIds] = useState<string[]>([]);
   const [showTagSheet, setShowTagSheet] = useState(false);
@@ -135,20 +140,52 @@ function Composer({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const durationRef = useRef(0);
 
-  const pickFile = useCallback(
-    (f: File | null) => {
-      if (preview) URL.revokeObjectURL(preview);
-      setFile(f);
-      setPreview(f ? URL.createObjectURL(f) : null);
+  const addFiles = useCallback(
+    (incoming: File[]) => {
+      if (incoming.length === 0) return;
+      setPickError(null);
+      setFiles((prev) => {
+        const room = MAX_MEDIA_PER_POST - prev.length;
+        if (room <= 0) {
+          setPickError(`Up to ${MAX_MEDIA_PER_POST} photos or videos per memory.`);
+          return prev;
+        }
+        const accepted = incoming.slice(0, room);
+        if (incoming.length > room) {
+          setPickError(`Only the first ${MAX_MEDIA_PER_POST} were added.`);
+        }
+        const newPreviews = accepted.map((f) => ({
+          url: URL.createObjectURL(f),
+          isVideo: f.type.startsWith("video/"),
+        }));
+        setPreviews((p) => [...p, ...newPreviews]);
+        return [...prev, ...accepted];
+      });
     },
-    [preview],
+    [],
   );
+
+  const removeFileAt = (idx: number) => {
+    setPreviews((p) => {
+      const url = p[idx]?.url;
+      if (url) URL.revokeObjectURL(url);
+      return p.filter((_, i) => i !== idx);
+    });
+    setFiles((f) => f.filter((_, i) => i !== idx));
+  };
+
+  const clearFiles = () => {
+    previews.forEach((p) => URL.revokeObjectURL(p.url));
+    setPreviews([]);
+    setFiles([]);
+  };
 
   const toggleTag = (id: string) =>
     setTaggedIds((p) => (p.includes(id) ? p.filter((k) => k !== id) : [...p, id]));
 
   const reset = () => {
-    pickFile(null);
+    clearFiles();
+    setPickError(null);
     setCaption("");
     setTaggedIds([]);
     setAudioBlob(null);
@@ -175,7 +212,7 @@ function Composer({
     void startRecording();
   };
 
-  const canPost = file !== null || caption.trim().length > 0 || (audioBlob !== null && keepAudio);
+  const canPost = files.length > 0 || caption.trim().length > 0 || (audioBlob !== null && keepAudio);
 
   // ── Voice recording (v2): the child narrates the photo; the recording is
   // transcribed straight into the caption for the parent to tidy — or leave
@@ -260,7 +297,7 @@ function Composer({
     try {
       await addMemory(
         householdId,
-        file,
+        files,
         caption.trim(),
         taggedIds,
         keepAudio && audioBlob ? audioBlob : undefined,
@@ -269,7 +306,8 @@ function Composer({
         tagged: taggedIds.length,
         has_caption: caption.trim() !== "",
         has_audio: keepAudio && !!audioBlob,
-        has_media: !!file,
+        has_media: files.length > 0,
+        media_count: files.length,
       });
       reset();
     } catch {
@@ -279,8 +317,6 @@ function Composer({
     }
   };
 
-  const isVideo = file?.type.startsWith("video/") ?? false;
-
   return (
     <section className="card-soft p-4 space-y-3">
       {/* Hidden file inputs */}
@@ -288,8 +324,12 @@ function Composer({
         ref={inputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
-        onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+        onChange={(e) => {
+          addFiles(Array.from(e.target.files ?? []));
+          if (inputRef.current) inputRef.current.value = "";
+        }}
       />
       <input
         ref={cameraRef}
@@ -297,7 +337,10 @@ function Composer({
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+        onChange={(e) => {
+          addFiles(Array.from(e.target.files ?? []));
+          if (cameraRef.current) cameraRef.current.value = "";
+        }}
       />
       <input
         ref={videoRef}
@@ -305,7 +348,10 @@ function Composer({
         accept="video/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+        onChange={(e) => {
+          addFiles(Array.from(e.target.files ?? []));
+          if (videoRef.current) videoRef.current.value = "";
+        }}
       />
 
       {!expanded ? (
@@ -357,30 +403,38 @@ function Composer({
         </div>
       ) : (
         <div className="space-y-3">
-          {file && (
-            <div className="relative">
-              {preview &&
-                (isVideo ? (
-                  <video
-                    src={preview}
-                    controls
-                    playsInline
-                    className="w-full max-h-72 rounded-2xl bg-foreground/5"
-                  />
-                ) : (
-                  <img
-                    src={preview}
-                    alt="Preview"
-                    className="w-full max-h-72 object-cover rounded-2xl"
-                  />
+          {previews.length > 0 && (
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                {previews.map((p, i) => (
+                  <div
+                    key={p.url}
+                    className="relative aspect-square rounded-xl overflow-hidden bg-foreground/5"
+                  >
+                    {p.isVideo ? (
+                      <video src={p.url} className="w-full h-full object-cover" muted playsInline />
+                    ) : (
+                      <img src={p.url} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                    )}
+                    {p.isVideo && (
+                      <span className="absolute bottom-1 left-1 rounded-full bg-foreground/70 text-background px-1.5 py-0.5 text-[10px] font-semibold flex items-center gap-0.5">
+                        <Video className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+                    <button
+                      onClick={() => removeFileAt(i)}
+                      aria-label={`Remove item ${i + 1}`}
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-foreground/70 text-background flex items-center justify-center hover:bg-foreground transition"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                 ))}
-              <button
-                onClick={() => pickFile(null)}
-                aria-label="Remove media"
-                className="absolute top-2 right-2 h-8 w-8 rounded-full bg-foreground/60 text-background flex items-center justify-center hover:bg-foreground transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {previews.length}/{MAX_MEDIA_PER_POST} attached
+                {pickError && <span className="ml-2 text-destructive">{pickError}</span>}
+              </div>
             </div>
           )}
 
@@ -642,6 +696,7 @@ function MemoryCard({
     remote: boolean;
     kind?: "image" | "video";
     audioUrl?: string;
+    media: MemoryMedia[];
   };
   kids: { id: string; name: string; color: string; companionId?: string }[];
   canEdit: boolean;
@@ -654,10 +709,19 @@ function MemoryCard({
   const [commentText, setCommentText] = useState("");
   const [feedbackLoaded, setFeedbackLoaded] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   // Seesaw-style overflow: first two tagged kids inline, the rest behind a
   // tappable "and N more" that expands in place (never a new screen).
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Prefer the multi-item list; fall back to the single legacy url for older posts.
+  const media: MemoryMedia[] =
+    memory.media && memory.media.length > 0
+      ? memory.media
+      : memory.url
+        ? [{ url: memory.url, kind: memory.kind ?? "image" }]
+        : [];
 
   const tagged = kids.filter((k) => memory.kidIds.includes(k.id));
   const shown = tagsExpanded ? tagged : tagged.slice(0, 2);
@@ -792,22 +856,20 @@ function MemoryCard({
       </div>
 
       {/* Media (image, video, or none for caption/voice-only posts) */}
-      {memory.url &&
-        (memory.kind === "video" ? (
-          <video
-            src={memory.url}
-            controls
-            playsInline
-            className="w-full max-h-[70vh] bg-foreground/5"
-          />
-        ) : (
-          <img
-            src={memory.url}
-            alt={memory.caption || "Family memory"}
-            className="w-full max-h-[70vh] object-cover"
-            loading="lazy"
-          />
-        ))}
+      {media.length > 0 && (
+        <MediaCollage
+          media={media}
+          alt={memory.caption || "Family memory"}
+          onOpen={(i) => setLightboxIdx(i)}
+        />
+      )}
+      {lightboxIdx !== null && (
+        <Lightbox
+          media={media}
+          startIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+        />
+      )}
 
       {/* Caption */}
       {memory.caption && (
@@ -911,6 +973,173 @@ function formatDuration(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// ─── Collage grid + Lightbox ──────────────────────────────────────────────
+
+function MediaCollage({
+  media,
+  alt,
+  onOpen,
+}: {
+  media: MemoryMedia[];
+  alt: string;
+  onOpen: (index: number) => void;
+}) {
+  if (media.length === 1) {
+    const m = media[0];
+    return m.kind === "video" ? (
+      <video src={m.url} controls playsInline className="w-full max-h-[70vh] bg-foreground/5" />
+    ) : (
+      <button
+        onClick={() => onOpen(0)}
+        className="block w-full"
+        aria-label="Open photo"
+      >
+        <img src={m.url} alt={alt} className="w-full max-h-[70vh] object-cover" loading="lazy" />
+      </button>
+    );
+  }
+
+  // 2-item: side by side. 3-item: 1 large + 2 stacked. 4+: 2x2 with "+N more" overlay.
+  const visible = media.slice(0, 4);
+  const extra = media.length - visible.length;
+
+  const Tile = ({ item, index, className }: { item: MemoryMedia; index: number; className?: string }) => (
+    <button
+      onClick={() => onOpen(index)}
+      className={`relative overflow-hidden bg-foreground/5 ${className ?? ""}`}
+      aria-label={`Open item ${index + 1}`}
+    >
+      {item.kind === "video" ? (
+        <>
+          <video src={item.url} className="w-full h-full object-cover" muted playsInline />
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="h-10 w-10 rounded-full bg-foreground/70 text-background flex items-center justify-center">
+              <Play className="h-4 w-4 ml-0.5" />
+            </span>
+          </span>
+        </>
+      ) : (
+        <img src={item.url} alt={alt} className="w-full h-full object-cover" loading="lazy" />
+      )}
+      {index === 3 && extra > 0 && (
+        <span className="absolute inset-0 bg-foreground/50 text-background flex items-center justify-center text-xl font-bold">
+          +{extra}
+        </span>
+      )}
+    </button>
+  );
+
+  if (media.length === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-0.5 max-h-[60vh]">
+        <Tile item={visible[0]} index={0} className="aspect-square" />
+        <Tile item={visible[1]} index={1} className="aspect-square" />
+      </div>
+    );
+  }
+
+  if (media.length === 3) {
+    return (
+      <div className="grid grid-cols-2 gap-0.5" style={{ aspectRatio: "1 / 1" }}>
+        <Tile item={visible[0]} index={0} className="row-span-2 h-full" />
+        <Tile item={visible[1]} index={1} className="h-full" />
+        <Tile item={visible[2]} index={2} className="h-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-0.5">
+      {visible.map((item, i) => (
+        <Tile key={i} item={item} index={i} className="aspect-square" />
+      ))}
+    </div>
+  );
+}
+
+function Lightbox({
+  media,
+  startIndex,
+  onClose,
+}: {
+  media: MemoryMedia[];
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const [idx, setIdx] = useState(startIndex);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") setIdx((i) => Math.min(media.length - 1, i + 1));
+      if (e.key === "ArrowLeft") setIdx((i) => Math.max(0, i - 1));
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [media.length, onClose]);
+
+  const current = media[idx];
+  if (!current) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      {idx > 0 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIdx((i) => Math.max(0, i - 1));
+          }}
+          aria-label="Previous"
+          className="absolute left-4 h-11 w-11 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+      {idx < media.length - 1 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIdx((i) => Math.min(media.length - 1, i + 1));
+          }}
+          aria-label="Next"
+          className="absolute right-4 h-11 w-11 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      )}
+      <div onClick={(e) => e.stopPropagation()} className="max-w-full max-h-full flex flex-col items-center gap-3">
+        {current.kind === "video" ? (
+          <video src={current.url} controls autoPlay playsInline className="max-w-full max-h-[85vh]" />
+        ) : (
+          <img src={current.url} alt={`Item ${idx + 1}`} className="max-w-full max-h-[85vh] object-contain" />
+        )}
+        {media.length > 1 && (
+          <div className="text-white/70 text-xs font-semibold">
+            {idx + 1} / {media.length}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function formatDateTime(ts: number) {
