@@ -106,6 +106,7 @@ function buildDesired(
   for (const k of kids) {
     const tint = companionTintKey(k.companionId, k.color);
     kidTintKey.set(k.id, tint);
+  }
 
   // Oldest first
   const asc = [...events].sort((a, b) => a.at - b.at);
