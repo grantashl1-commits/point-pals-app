@@ -131,9 +131,14 @@ function BlogPage() {
             }}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-butter/50 text-foreground/70 font-display font-bold text-sm shrink-0">
-                {i + 1}
-              </div>
+              <img
+                src={post.image}
+                alt=""
+                width={56}
+                height={56}
+                loading="lazy"
+                className="h-14 w-14 rounded-xl object-cover shrink-0"
+              />
               <div>
                 <h3 className="font-display text-base font-bold">{post.title}</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
