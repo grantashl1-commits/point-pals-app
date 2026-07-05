@@ -216,11 +216,6 @@ function Quote({ children, author, source }: { children: React.ReactNode; author
 function ResearchPost() {
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        <strong>SEO title:</strong> The Research Behind PointPals | Family Chore App<br />
-        <strong>Meta:</strong> Learn how PointPals uses ideas from motivation, habit formation, family routines and positive parenting to make chores feel calmer and more connected.
-      </p>
-      <hr className="border-border" />
 
       <p>
         PointPals was built around a simple idea: children are more likely to contribute when they feel connected, capable and part of something meaningful.
@@ -330,11 +325,6 @@ function CharactersPost() {
 
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        <strong>SEO title:</strong> Meet the PointPals Characters | Kids Chore App Mascots<br />
-        <strong>Meta:</strong> Meet Sunny, Pip, Bramble, Fern, Marlow, Coda, Ridge and Ziggy — the playful PointPals characters that help make chores, kindness and family habits fun.
-      </p>
-      <hr className="border-border" />
 
       <p>
         PointPals is not meant to feel like a spreadsheet for chores. It is meant to feel warm, playful and encouraging — the kind of app children actually want to open with their family.
@@ -391,11 +381,6 @@ function CharactersPost() {
 function ChoresFunPost() {
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        <strong>SEO title:</strong> How to Make Chores Fun Without Bribes<br />
-        <strong>Meta:</strong> Learn how to make chores fun for kids without constant nagging, bribing or screen-time battles. Use points, routines and family rewards instead.
-      </p>
-      <hr className="border-border" />
 
       <p>
         Most parents do not want to nag. But chores have a way of turning even calm parents into broken record machines.
@@ -464,11 +449,6 @@ function ChoresFunPost() {
 function MarbleJarPost() {
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        <strong>SEO title:</strong> What Is a Marble Jar Reward System?<br />
-        <strong>Meta:</strong> A marble jar reward system helps children see progress by adding marbles for chores, kindness and positive habits. Learn how families can use one.
-      </p>
-      <hr className="border-border" />
 
       <p>
         A marble jar reward system is a simple way to help children see progress. When a child completes a chore, shows kindness or practises a positive habit, a marble goes into the jar. When the jar is full, the family celebrates with a reward.
@@ -517,11 +497,6 @@ function MarbleJarPost() {
 function ScreenTimePost() {
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        <strong>SEO title:</strong> Screen-Free Rewards for Kids: Better Chore Reward Ideas<br />
-        <strong>Meta:</strong> Looking for screen-free rewards for kids? Here are family-friendly chore reward ideas that encourage connection, confidence and positive behaviour.
-      </p>
-      <hr className="border-border" />
 
       <p>
         Screen time is an easy reward. It is quick. It is exciting. Children usually want it. Parents usually have access to it. &ldquo;Finish your chores and you can have the tablet.&rdquo;
@@ -564,11 +539,6 @@ function ScreenTimePost() {
 function AgeChoresPost() {
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        <strong>SEO title:</strong> Age-Appropriate Chores for Kids: A Family Chore List<br />
-        <strong>Meta:</strong> Looking for chores for kids by age? Use this simple family chore list for toddlers, preschoolers, school-aged children and tweens.
-      </p>
-      <hr className="border-border" />
 
       <p>
         Children want to feel capable. They may not always show it when you ask them to put away shoes or clear the table, but most children enjoy feeling useful when the task is clear and achievable.
