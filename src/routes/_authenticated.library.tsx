@@ -155,8 +155,8 @@ function LibraryPage() {
         {tab === "positive" && (
           <SkillManager
             skills={skills.filter((s) => s.isPositive)}
-            addSkill={(name, points, color) =>
-              addSkill({ name, icon: pickIconForName(name), color, points, isPositive: true })
+            addSkill={(name, points, color, icon) =>
+              addSkill({ name, icon: icon ?? pickIconForName(name), color, points, isPositive: true })
             }
             updateSkill={updateSkill}
             removeSkill={removeSkill}
@@ -169,8 +169,8 @@ function LibraryPage() {
         {tab === "needs-work" && (
           <SkillManager
             skills={skills.filter((s) => !s.isPositive)}
-            addSkill={(name, points, color) =>
-              addSkill({ name, icon: pickIconForName(name), color, points, isPositive: false })
+            addSkill={(name, points, color, icon) =>
+              addSkill({ name, icon: icon ?? pickIconForName(name), color, points, isPositive: false })
             }
             updateSkill={updateSkill}
             removeSkill={removeSkill}
