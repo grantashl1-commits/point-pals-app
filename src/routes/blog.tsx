@@ -4,7 +4,7 @@ import { PublicPageLayout } from "@/components/PublicPageLayout";
 
 import imgCharacters from "@/assets/marketing/blog-characters.jpg";
 
-import imgMarbleJar from "@/assets/marketing/blog-marble-jar.jpg";
+
 
 
 import sunnyImg from "@/assets/companions/sunny.png.asset.json";
@@ -82,7 +82,7 @@ const POSTS = [
       "A marble jar reward system helps children see progress by adding marbles for chores, kindness and positive habits. Learn how families can use one.",
     keywords: "marble jar reward system, family reward system, kids reward system, chore rewards, reward app for kids",
     title: "What Is a Marble Jar Reward System?",
-    image: imgMarbleJar,
+    image: "https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/dropping_marble_in_jar.jpeg",
     content: <MarbleJarPost />,
   },
   {
