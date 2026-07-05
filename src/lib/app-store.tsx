@@ -33,6 +33,7 @@ import {
 // continuous across reloads in the meantime.
 
 export type Household = {
+  id: string;
   name: string;
   sharedPool: number;
   rewardTarget: number;

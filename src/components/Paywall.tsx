@@ -17,8 +17,7 @@ export function Paywall({ reason }: { reason?: string }) {
   const go = async () => {
     setBusy(true);
     setErr(null);
-    // "harper" is a placeholder household id until auth/households are wired.
-    const res = await startCheckout("household_local");
+    const res = await startCheckout(household.id);
     if (res.url) {
       window.location.href = res.url;
       return;
@@ -37,7 +36,7 @@ export function Paywall({ reason }: { reason?: string }) {
   const manage = async () => {
     setBusy(true);
     setErr(null);
-    const res = await openPortal("household_local");
+    const res = await openPortal(household.id);
     if (res.url) {
       window.location.href = res.url;
       return;
