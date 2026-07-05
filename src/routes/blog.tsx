@@ -111,7 +111,7 @@ function BlogPage() {
       </header>
 
       <div className="space-y-2">
-        {POSTS.map((post, i) => (
+        {POSTS.map((post) => (
           <Link
             key={post.id}
             to="/blog"
@@ -163,6 +163,14 @@ function BlogPage() {
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-3 leading-relaxed text-foreground/90 pb-4">
+                <img
+                  src={post.image}
+                  alt=""
+                  width={768}
+                  height={768}
+                  loading="lazy"
+                  className="w-full h-auto rounded-2xl mb-3"
+                />
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {post.keywords.split(", ").map((kw) => (
                     <span
