@@ -167,6 +167,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<"demo" | "live">("demo");
   const [needsHousehold, setNeedsHousehold] = useState(false);
   const householdIdRef = useRef<string | null>(null);
+  // The signed-in user id, stamped onto point_events.awarded_by (Reports
+  // attribution). Null in signed-out demo mode.
+  const userIdRef = useRef<string | null>(null);
   // Row ids we just wrote — used to suppress realtime echoes of our own writes.
   const echoIds = useRef<Set<string>>(new Set());
   const markEcho = (id: string) => {
@@ -237,6 +240,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Live-mode bootstrap: sign-in → fetch bundle → subscribe realtime.
   // ---------------------------------------------------------------------------
   const bootLive = async (userId: string) => {
+    userIdRef.current = userId;
     const hid = await fetchPrimaryHouseholdId(userId);
     if (!hid) {
       setNeedsHousehold(true);
@@ -268,6 +272,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         void bootLive(session.user.id);
       } else if (event === "SIGNED_OUT") {
         householdIdRef.current = null;
+        userIdRef.current = null;
         setMode("demo");
         setNeedsHousehold(false);
         setState(initialState());
@@ -459,7 +464,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           async () =>
             await supabase
               .from("point_events")
-              .insert(eventRows.map((r) => ({ ...r, household_id: hid() }))),
+              .insert(
+                eventRows.map(
+                  (r) => ({ ...r, household_id: hid(), awarded_by: userIdRef.current }) as never,
+                ),
+              ),
           eventRows.map((r) => r.id),
         );
         void dbWrite(
@@ -715,7 +724,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               item_icon: "🛠️",
               points: delta,
               batch_id: `corr_${eventId}`,
-            }),
+              awarded_by: userIdRef.current,
+            } as never),
           [eventId],
         );
         void dbWrite(
