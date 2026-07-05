@@ -127,8 +127,8 @@ export function MarbleJar({
 }: {
   value: number;
   target: number;
-  events: PointEvent[];
-  kids: Kid[];
+  events?: PointEvent[];
+  kids?: Kid[];
   size?: number;
   reducedMotion?: boolean;
   onFull?: () => void;
