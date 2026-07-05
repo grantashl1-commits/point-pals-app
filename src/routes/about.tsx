@@ -502,10 +502,10 @@ function SectionAccordion({
       className="border-0 rounded-2xl bg-card/50 px-5 data-[state=open]:bg-card/80 transition-colors"
     >
       <AccordionTrigger className="flex items-center gap-2 py-4 hover:no-underline cursor-pointer">
-        <h2 className="flex items-center gap-2 font-display text-xl font-bold text-left m-0">
+        <span className="flex items-center gap-2 font-display text-xl font-bold text-left">
           <span className="text-foreground/70 shrink-0">{icon}</span>
           {title}
-        </h2>
+        </span>
       </AccordionTrigger>
       <AccordionContent>
         <div className="space-y-3 leading-relaxed text-foreground/90 pb-4">{children}</div>
