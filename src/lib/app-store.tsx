@@ -477,7 +477,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           void dbWrite(async () =>
             await supabase
               .from("kids")
-              .update({ current_points: nextCur, all_time_points: nextAll })
+              .update({ current_points: nextCur, all_time_points: nextAll } as any)
               .eq("id", kidId),
           );
         });
