@@ -4,7 +4,7 @@ import { PublicPageLayout } from "@/components/PublicPageLayout";
 
 import imgCharacters from "@/assets/marketing/blog-characters.jpg";
 
-import imgMarbleJar from "@/assets/marketing/blog-marble-jar.jpg";
+
 
 
 import sunnyImg from "@/assets/companions/sunny.png.asset.json";
