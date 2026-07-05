@@ -7,6 +7,14 @@ import imgChoresFun from "@/assets/marketing/blog-chores-fun.jpg";
 import imgMarbleJar from "@/assets/marketing/blog-marble-jar.jpg";
 import imgScreenTime from "@/assets/marketing/blog-screen-time.jpg";
 import imgAgeChores from "@/assets/marketing/blog-age-chores.jpg";
+import sunnyImg from "@/assets/companions/sunny.png.asset.json";
+import pipImg from "@/assets/companions/pip.png.asset.json";
+import brambleImg from "@/assets/companions/bramble.png.asset.json";
+import fernImg from "@/assets/companions/fern.png.asset.json";
+import marlowImg from "@/assets/companions/marlow.png.asset.json";
+import codaImg from "@/assets/companions/coda.png.asset.json";
+import ridgeImg from "@/assets/companions/ridge.png.asset.json";
+import ziggyImg from "@/assets/companions/ziggy.png.asset.json";
 import {
   Accordion,
   AccordionItem,
