@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageLayout } from "@/components/PublicPageLayout";
-import faqHero from "@/assets/marketing/faq-hero.jpg";
 import {
   Accordion,
   AccordionItem,
