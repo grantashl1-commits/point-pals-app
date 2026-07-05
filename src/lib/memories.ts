@@ -152,42 +152,43 @@ async function signedUrl(path: string): Promise<string> {
 async function remoteUpload(
   id: string,
   householdId: string,
-  media: { blob: Blob; kind: "image" | "video"; contentType: string; ext: string } | null,
+  medias: { blob: Blob; kind: "image" | "video"; contentType: string; ext: string }[],
   caption: string,
   kidIds: string[],
-): Promise<{ url: string; path: string | null }> {
-  let path: string | null = null;
-  if (media) {
-    path = `${householdId}/${id}.${media.ext}`;
+): Promise<{ media: MemoryMedia[] }> {
+  const uploaded: MemoryMedia[] = [];
+  for (let i = 0; i < medias.length; i++) {
+    const m = medias[i];
+    const suffix = medias.length > 1 ? `_${i}` : "";
+    const path = `${householdId}/${id}${suffix}.${m.ext}`;
     const up = await withTimeout(
-      db.storage.from("memories").upload(path, media.blob, { contentType: media.contentType }),
+      db.storage.from("memories").upload(path, m.blob, { contentType: m.contentType }),
     );
     if (up.error) throw up.error;
+    uploaded.push({ url: await signedUrl(path), kind: m.kind, path });
   }
+  const first = uploaded[0];
   const ins = await withTimeout(
     Promise.resolve(
       db.from("memory_posts").insert({
         id,
         household_id: householdId,
-        storage_path: path,
-        media_type: media?.kind ?? null,
+        storage_path: first?.path ?? null,
+        media_type: first?.kind ?? null,
+        media_paths: uploaded.map((u) => ({ path: u.path, kind: u.kind })),
         caption,
-        // kid_ids stored via memory_post_kids table
       }),
     ),
   );
   if (ins.error) throw ins.error;
-  // Insert kid tags
   if (kidIds.length > 0) {
     await withTimeout(
       Promise.resolve(
         db.from("memory_post_kids").insert(kidIds.map((kidId) => ({ post_id: id, kid_id: kidId }))),
       ),
-    ).catch(() => {
-      /* kid tagging best-effort */
-    });
+    ).catch(() => {});
   }
-  return { url: path ? await signedUrl(path) : "", path };
+  return { media: uploaded };
 }
 
 /** Upload an audio blob to storage (household-prefixed — see RLS note above). */
