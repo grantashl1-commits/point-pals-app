@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BadgeCheck, Sparkles, Heart, Gift, ArrowRight } from "lucide-react";
 import { formatPrice, BILLING_CONFIG } from "@/lib/entitlements";
 import heroAsset from "@/assets/brand/pp-hero.asset.json";
@@ -41,6 +41,7 @@ function WelcomePage() {
   const TARGET = 24;
   const [value, setValue] = useState(0);
   const [celebrating, setCelebrating] = useState(false);
+  const [pendingDrops, setPendingDrops] = useState<{ n: number; tint: string }[]>([]);
 
   const handleFull = useCallback(() => {
     setCelebrating(true);
@@ -51,12 +52,23 @@ function WelcomePage() {
   }, []);
 
   const addPoints = useCallback(
-    (n: number) => {
+    (n: number, tint?: string) => {
       if (celebrating) return;
       setValue((v) => Math.min(TARGET, v + n));
+      if (tint) {
+        setPendingDrops((d) => [...d, { n, tint }]);
+      }
     },
     [celebrating],
   );
+
+  // Clear pending drops after MarbleJar's effect has consumed them (React
+  // fires effects bottom-up, so MarbleJar's child effect runs before this).
+  useEffect(() => {
+    if (pendingDrops.length > 0) {
+      setPendingDrops([]);
+    }
+  });
 
   return (
     <div
@@ -126,6 +138,7 @@ function WelcomePage() {
             value={value}
             target={TARGET}
             celebrating={celebrating}
+            pendingDrops={pendingDrops}
             onFull={handleFull}
           />
         </div>

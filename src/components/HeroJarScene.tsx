@@ -13,11 +13,13 @@ export const HeroJarScene = memo(function HeroJarScene({
   value,
   target,
   celebrating,
+  pendingDrops,
   onFull,
 }: {
   value: number;
   target: number;
   celebrating: boolean;
+  pendingDrops?: { n: number; tint: string }[];
   onFull: () => void;
 }) {
   return (
@@ -45,6 +47,7 @@ export const HeroJarScene = memo(function HeroJarScene({
             value={value}
             target={target}
             size={typeof window !== "undefined" && window.innerWidth < 640 ? 240 : 460}
+            pendingDrops={pendingDrops}
             onFull={onFull}
           />
         </div>

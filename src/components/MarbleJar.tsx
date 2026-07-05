@@ -48,12 +48,15 @@ const DEFAULT_TINT: [string, string] = ["#B79BE0", "#D7C7F0"];
 const DISSOLVE_MS = 600;
 
 // Synthetic marble set for callers (marketing hero) that don't have a real
-// event log — cycles through the palette so the jar still looks alive.
+// event log. New marbles get the tint from the latest pending drop (if any)
+// so the bubble colour matches the marble that falls into the jar.
 function buildSynthetic(
   value: number,
   target: number,
   perMarble: number,
   cap: number,
+  delta: number,
+  newDropTint?: string,
 ) {
   const count = Math.min(
     Math.round(Math.max(0, value) / perMarble),
@@ -62,9 +65,18 @@ function buildSynthetic(
   );
   const palette = Object.values(MARBLE_TINT);
   const list: { id: string; kidId: string; color: string; hue: string }[] = [];
+  const newTint = newDropTint ? MARBLE_TINT[newDropTint] ?? DEFAULT_TINT : null;
+
   for (let i = 0; i < count; i++) {
-    const t = palette[i % palette.length];
-    list.push({ id: `syn-${i}`, kidId: "syn", color: t[0], hue: t[1] });
+    // The last `delta` marbles get the new drop colour. Earlier entries recycle
+    // through the palette — they already exist in `marbles.current` so the
+    // reconciliation skips them and their runtime colour is preserved.
+    if (newTint && i >= count - delta) {
+      list.push({ id: `syn-${i}`, kidId: "syn", color: newTint[0], hue: newTint[1] });
+    } else {
+      const t = palette[i % palette.length];
+      list.push({ id: `syn-${i}`, kidId: "syn", color: t[0], hue: t[1] });
+    }
   }
   return list;
 }
@@ -164,6 +176,7 @@ export function MarbleJar({
   kids,
   size = 260,
   reducedMotion = false,
+  pendingDrops,
   onFull,
   className,
 }: {
@@ -173,6 +186,10 @@ export function MarbleJar({
   kids?: Kid[];
   size?: number;
   reducedMotion?: boolean;
+  /** Marketing-hero drops only: each entry is one bubble's worth of tinted
+   *  points that should colour the newly-added marbles. Cleared automatically
+   *  after consumption. */
+  pendingDrops?: { n: number; tint: string }[];
   onFull?: () => void;
   className?: string;
 }) {
@@ -185,6 +202,9 @@ export function MarbleJar({
   // Guard so the initial hydration doesn't announce every pre-existing marble
   // as a fresh drop (would spam the dull chime on page load).
   const primed = useRef(false);
+  // Track the previous marble count so we know how many are genuinely new
+  // when pendingDrops arrive for the marketing hero.
+  const prevSynCount = useRef(0);
 
   // Effective render size: capped to the container width so the jar never
   // overflows a narrow screen, and re-measured on resize / orientation change
@@ -269,9 +289,23 @@ export function MarbleJar({
     // which marbles are genuinely new (→ drop) vs which vanished (→ dissolve).
     // When callers don't supply real events (marketing hero), synthesize a
     // stable set from `value` so the jar still fills honestly.
+    //
+    // For the synthetic path, compute how many marbles are new since the last
+    // render so the corresponding tint from pendingDrops colours them.
+    const synCount = Math.min(
+      Math.round(Math.max(0, value) / perMarble),
+      Math.round(target / perMarble),
+      cap,
+    );
+    const synDelta = synCount - prevSynCount.current;
+    prevSynCount.current = synCount;
+    const latestDropTint =
+      Array.isArray(pendingDrops) && pendingDrops.length > 0
+        ? pendingDrops[pendingDrops.length - 1].tint
+        : undefined;
     const desired = events && kids
       ? buildDesired(events, kids, target, perMarble, cap, value)
-      : buildSynthetic(value, target, perMarble, cap);
+      : buildSynthetic(value, target, perMarble, cap, synDelta, latestDropTint);
     const desiredIds = new Set(desired.map((d) => d.id));
     const currentIds = new Set(marbles.current.map((m) => m.id));
 
@@ -567,7 +601,7 @@ export function MarbleJar({
         raf.current = null;
       }
     };
-  }, [events, kids, renderSize, target, perMarble, reducedMotion, value]);
+  }, [events, kids, renderSize, target, perMarble, reducedMotion, value, pendingDrops]);
 
   // Fire the "full" celebration exactly once when we cross the target.
   useEffect(() => {
