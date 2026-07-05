@@ -15,7 +15,7 @@ import {
 } from "@/lib/reports";
 import { Download, Printer, MoreVertical, Wrench, Check, X, BarChart3 } from "lucide-react";
 
-export const Route = createFileRoute("/reports")({
+export const Route = createFileRoute("/_authenticated/reports")({
   component: ReportsPage,
   head: () => ({
     meta: [
