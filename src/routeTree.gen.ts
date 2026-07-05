@@ -12,8 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RewardsRouteImport } from './routes/rewards'
-import { Route as RefundsRouteImport } from './routes/refunds'
-import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as CollectionRouteImport } from './routes/collection'
@@ -33,16 +31,6 @@ const SettingsRoute = SettingsRouteImport.update({
 const RewardsRoute = RewardsRouteImport.update({
   id: '/rewards',
   path: '/rewards',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundsRoute = RefundsRouteImport.update({
-  id: '/refunds',
-  path: '/refunds',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -77,8 +65,6 @@ export interface FileRoutesByFullPath {
   '/collection': typeof CollectionRoute
   '/library': typeof LibraryRoute
   '/onboarding': typeof OnboardingRoute
-  '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/rewards': typeof RewardsRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
@@ -89,8 +75,6 @@ export interface FileRoutesByTo {
   '/collection': typeof CollectionRoute
   '/library': typeof LibraryRoute
   '/onboarding': typeof OnboardingRoute
-  '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/rewards': typeof RewardsRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
@@ -102,49 +86,16 @@ export interface FileRoutesById {
   '/collection': typeof CollectionRoute
   '/library': typeof LibraryRoute
   '/onboarding': typeof OnboardingRoute
-  '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/rewards': typeof RewardsRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/about'
-    | '/collection'
-    | '/library'
-    | '/onboarding'
-    | '/privacy'
-    | '/refunds'
-    | '/rewards'
-    | '/settings'
-    | '/terms'
+  fullPaths: '/' | '/collection' | '/library' | '/onboarding' | '/rewards'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/about'
-    | '/collection'
-    | '/library'
-    | '/onboarding'
-    | '/privacy'
-    | '/refunds'
-    | '/rewards'
-    | '/settings'
-    | '/terms'
-  id:
-    | '__root__'
-    | '/'
-    | '/about'
-    | '/collection'
-    | '/library'
-    | '/onboarding'
-    | '/privacy'
-    | '/refunds'
-    | '/rewards'
-    | '/settings'
-    | '/terms'
+  to: '/' | '/collection' | '/library' | '/onboarding' | '/rewards'
+  id: '__root__' | '/' | '/collection' | '/library' | '/onboarding' | '/rewards'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,8 +104,6 @@ export interface RootRouteChildren {
   CollectionRoute: typeof CollectionRoute
   LibraryRoute: typeof LibraryRoute
   OnboardingRoute: typeof OnboardingRoute
-  PrivacyRoute: typeof PrivacyRoute
-  RefundsRoute: typeof RefundsRoute
   RewardsRoute: typeof RewardsRoute
   SettingsRoute: typeof SettingsRoute
   TermsRoute: typeof TermsRoute
@@ -181,20 +130,6 @@ declare module '@tanstack/react-router' {
       path: '/rewards'
       fullPath: '/rewards'
       preLoaderRoute: typeof RewardsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refunds': {
-      id: '/refunds'
-      path: '/refunds'
-      fullPath: '/refunds'
-      preLoaderRoute: typeof RefundsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -241,8 +176,6 @@ const rootRouteChildren: RootRouteChildren = {
   CollectionRoute: CollectionRoute,
   LibraryRoute: LibraryRoute,
   OnboardingRoute: OnboardingRoute,
-  PrivacyRoute: PrivacyRoute,
-  RefundsRoute: RefundsRoute,
   RewardsRoute: RewardsRoute,
   SettingsRoute: SettingsRoute,
   TermsRoute: TermsRoute,
