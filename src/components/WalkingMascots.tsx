@@ -7,6 +7,7 @@ import ridgeAsset from "@/assets/companions/ridge.png.asset.json";
 import codaAsset from "@/assets/companions/coda.png.asset.json";
 import fernAsset from "@/assets/companions/fern.png.asset.json";
 import marlowAsset from "@/assets/companions/marlow.png.asset.json";
+import { companionTintKey, TINT_HEX } from "@/lib/companion-tints";
 
 /**
  * Full-width overlay: the PointPals mascots walk slowly across the bottom
@@ -14,31 +15,18 @@ import marlowAsset from "@/assets/companions/marlow.png.asset.json";
  * up-and-right toward the jar. Each landed bubble calls onPointsLand(n).
  */
 
-// Each companion has a marble tint key from the MarbleJar palette so
-// their point bubbles (and the marble that drops) share the same colour.
-// The tint names match MARBLE_TINT keys in MarbleJar.tsx.
+// Each companion has a marble tint key from the shared companion-tints map
+// so their point bubbles (and the marble that drops) share the same colour.
 const MASCOTS = [
-  { src: sunnyAsset.url, alt: "Sunny", tint: "butter", dur: "26s", delay: "0s", size: 156, bottom: "6%" },
-  { src: pipAsset.url, alt: "Pip", tint: "sky", dur: "26s", delay: "-3.25s", size: 132, bottom: "4%" },
-  { src: brambleAsset.url, alt: "Bramble", tint: "sage", dur: "26s", delay: "-6.5s", size: 150, bottom: "5%" },
-  { src: ziggyAsset.url, alt: "Ziggy", tint: "lilac", dur: "26s", delay: "-9.75s", size: 138, bottom: "7%" },
-  { src: ridgeAsset.url, alt: "Ridge", tint: "foam", dur: "26s", delay: "-13s", size: 160, bottom: "4%" },
-  { src: codaAsset.url, alt: "Coda", tint: "lilac", dur: "26s", delay: "-16.25s", size: 134, bottom: "6%" },
-  { src: fernAsset.url, alt: "Fern", tint: "sage", dur: "26s", delay: "-19.5s", size: 146, bottom: "5%" },
-  { src: marlowAsset.url, alt: "Marlow", tint: "blush", dur: "26s", delay: "-22.75s", size: 152, bottom: "7%" },
+  { src: sunnyAsset.url, alt: "Sunny", tint: companionTintKey("sunny"), dur: "26s", delay: "0s", size: 156, bottom: "6%" },
+  { src: pipAsset.url, alt: "Pip", tint: companionTintKey("pip"), dur: "26s", delay: "-3.25s", size: 132, bottom: "4%" },
+  { src: brambleAsset.url, alt: "Bramble", tint: companionTintKey("bramble"), dur: "26s", delay: "-6.5s", size: 150, bottom: "5%" },
+  { src: ziggyAsset.url, alt: "Ziggy", tint: companionTintKey("ziggy"), dur: "26s", delay: "-9.75s", size: 138, bottom: "7%" },
+  { src: ridgeAsset.url, alt: "Ridge", tint: companionTintKey("ridge"), dur: "26s", delay: "-13s", size: 160, bottom: "4%" },
+  { src: codaAsset.url, alt: "Coda", tint: companionTintKey("coda"), dur: "26s", delay: "-16.25s", size: 134, bottom: "6%" },
+  { src: fernAsset.url, alt: "Fern", tint: companionTintKey("fern"), dur: "26s", delay: "-19.5s", size: 146, bottom: "5%" },
+  { src: marlowAsset.url, alt: "Marlow", tint: companionTintKey("marlow"), dur: "26s", delay: "-22.75s", size: 152, bottom: "7%" },
 ];
-
-// Bubble colours derived from the MarbleJar tint palette. Each mascot uses
-// its tint's primary colour for the bubble badge.
-const MARBLE_TINT_HEX: Record<string, string> = {
-  sky: "#8FC7EA",
-  butter: "#F1D36A",
-  sage: "#9CD08C",
-  blush: "#EDA6B2",
-  lilac: "#B79BE0",
-  sand: "#E0B673",
-  foam: "#84CFCB",
-};
 
 const TICK_MS = 1800; // one point-bubble every 1.8s (slow, calm pace)
 const FLY_MS = 2800; // 2.8s to arc up to the jar
@@ -65,7 +53,7 @@ export const WalkingMascots = memo(function WalkingMascots({
       // Pick a random mascot and use its colour
       const mascot = MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
       const tint = mascot.tint;
-      const color = MARBLE_TINT_HEX[tint] ?? "#B79BE0";
+      const color = TINT_HEX[tint] ?? "#B79BE0";
       const leftPct = 8 + Math.floor(Math.random() * 55); // start left/middle so it can arc right
       setBubbles((b) => [...b, { id, value: inc, color, tint, leftPct }]);
       window.setTimeout(() => {
