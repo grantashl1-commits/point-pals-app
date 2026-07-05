@@ -11,11 +11,18 @@
 // activate handler below prunes every older "pointpals-*" cache.
 const VERSION = new URL(self.location.href).searchParams.get("v") || "v1";
 const CACHE = "pointpals-" + VERSION;
-const PRECACHE = ["/", "/manifest.webmanifest", "/icon.svg", "/favicon.ico"];
+// Only precache files that actually exist — a single 404 rejects addAll() and
+// the whole SW install fails.
+const PRECACHE = ["/", "/manifest.webmanifest", "/favicon.png", "/app-icon.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()),
+    caches
+      .open(CACHE)
+      // Cache each item independently so one bad URL can't fail the whole
+      // install (addAll is all-or-nothing).
+      .then((c) => Promise.allSettled(PRECACHE.map((u) => c.add(u))))
+      .then(() => self.skipWaiting()),
   );
 });
 
