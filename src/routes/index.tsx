@@ -6,6 +6,7 @@ import { KidBadge } from "@/components/KidBadge";
 import { AwardModal } from "@/components/AwardModal";
 import { FamilyJarCard } from "@/components/FamilyJarCard";
 import { EmptyState } from "@/components/EmptyState";
+import { RecentActivity } from "@/components/RecentActivity";
 import { Undo2 } from "lucide-react";
 
 // The app has no real auth/session system yet (§8 landing page is built without
@@ -114,6 +115,9 @@ function HomePage() {
 
       {/* The marble jar — the page's dominant visual (§3) */}
       <FamilyJarCard size={330} />
+
+      {/* Collapsed recent-activity log — quick context, not the photo wall */}
+      <RecentActivity />
 
       {/* Award modal (§2) */}
       {activeKid && (
