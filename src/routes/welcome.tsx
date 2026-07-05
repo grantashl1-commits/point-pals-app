@@ -238,22 +238,31 @@ function WelcomePage() {
   );
 }
 
-// "game" with each letter in a different pastel accent (coral, sage, butter,
-// lilac) — no two adjacent the same (§1a).
+// "game" rendered in the same warm butter→pink gradient as the page
+// background, with a slow glimmer sparkle sweeping across the letters.
 function GameWord() {
-  const letters: [string, string][] = [
-    ["g", "#F19AAC"], // coral
-    ["a", "#8FBE7E"], // sage
-    ["m", "#E9B84A"], // butter
-    ["e", "#A98BDB"], // lilac
-  ];
   return (
-    <span className="inline-block">
-      {letters.map(([ch, color]) => (
-        <span key={ch} style={{ color }}>
-          {ch}
-        </span>
-      ))}
+    <span
+      className="relative inline-block bg-clip-text text-transparent"
+      style={{
+        backgroundImage:
+          "linear-gradient(100deg, #F5C64B 0%, #F19AAC 45%, #EC6FB0 100%)",
+        WebkitBackgroundClip: "text",
+      }}
+    >
+      game
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-clip-text text-transparent game-glimmer"
+        style={{
+          backgroundImage:
+            "linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.95) 50%, transparent 70%)",
+          backgroundSize: "250% 100%",
+          WebkitBackgroundClip: "text",
+        }}
+      >
+        game
+      </span>
     </span>
   );
 }
