@@ -3,6 +3,8 @@ import { Sparkles, Heart, Gift, ArrowRight } from "lucide-react";
 import { PASTEL_HEX } from "@/lib/mock-data";
 import { CompanionAvatar } from "@/components/CompanionAvatar";
 import { formatPrice, BILLING_CONFIG } from "@/lib/entitlements";
+import heroAsset from "@/assets/brand/pp-hero.asset.json";
+import { url as logoUrl } from "@/assets/brand/pointpals-logo-points.asset.json";
 
 export const Route = createFileRoute("/welcome")({
   component: WelcomePage,
@@ -22,6 +24,8 @@ export const Route = createFileRoute("/welcome")({
           "PointPals is a warm, pastel family chore & behaviour tracker. Kids earn points toward collectible plush companions and vote on shared rewards.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: heroAsset.url },
+      { name: "twitter:image", content: heroAsset.url },
     ],
   }),
 });
@@ -32,49 +36,97 @@ export const Route = createFileRoute("/welcome")({
 // canvas jar animation, no client-only state, just the pitch.
 function WelcomePage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(1200px 700px at 15% 0%, color-mix(in oklab, var(--pastel-butter) 55%, white), transparent 60%), radial-gradient(1000px 700px at 95% 15%, color-mix(in oklab, var(--pastel-blush) 55%, white), transparent 60%), linear-gradient(180deg, #FEF9F5, #FEF3EA)",
+        }}
+      />
       {/* header */}
-      <header className="max-w-5xl mx-auto px-6 pt-8 flex items-center justify-between">
-        <div className="text-2xl font-display font-extrabold tracking-tight">PointPals</div>
+      <header className="max-w-6xl mx-auto px-6 pt-6 flex items-center justify-between">
+        <Link to="/" className="flex items-center">
+          <img src={logoUrl} alt="PointPals" className="h-10 w-auto select-none" draggable={false} />
+        </Link>
         <Link
           to="/sign-in"
-          className="text-sm font-semibold text-muted-foreground hover:text-foreground transition"
+          className="tap text-sm font-semibold text-muted-foreground hover:text-foreground transition"
         >
           Log in
         </Link>
       </header>
 
       {/* hero */}
-      <section className="max-w-3xl mx-auto px-6 pt-14 pb-10 text-center">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-butter/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
-          <Sparkles className="h-3.5 w-3.5" /> Now with photo memories
+      <section className="max-w-6xl mx-auto px-6 pt-8 pb-12">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+          <div className="text-center lg:text-left">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-butter/60 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
+              <Sparkles className="h-3.5 w-3.5" /> Now with photo memories
+            </div>
+            <h1 className="mt-5 font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.02] tracking-tight">
+              Chores that feel
+              <br />
+              like a{" "}
+              <span
+                className="inline-block"
+                style={{
+                  background: "linear-gradient(90deg, #EC4899, #F59E0B, #10B981)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                game
+              </span>
+              ,
+              <br />
+              not a fight.
+            </h1>
+            <p className="mt-5 text-lg text-muted-foreground max-w-xl lg:mx-0 mx-auto">
+              PointPals turns everyday chores and good behaviour into points the whole family fills a
+              shared jar with together — then celebrates by choosing a reward as a team.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+              <Link
+                to="/sign-up"
+                className="tap inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-7 py-4 text-base font-semibold text-background hover:opacity-90 transition shadow-[0_10px_30px_-8px_rgba(236,72,153,0.5)]"
+              >
+                Start free trial <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                to="/sign-in"
+                className="tap inline-flex items-center justify-center gap-2 rounded-full border border-input bg-card px-7 py-4 text-base font-semibold hover:bg-muted transition"
+              >
+                Log in
+              </Link>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Free for {BILLING_CONFIG.trialDays} days, then {formatPrice()}. Cancel anytime.
+            </p>
+          </div>
+
+          <div className="relative">
+            <div
+              aria-hidden
+              className="absolute -inset-6 rounded-[3rem] blur-3xl opacity-70"
+              style={{
+                background:
+                  "radial-gradient(closest-side, color-mix(in oklab, var(--pastel-blush) 60%, white), transparent)",
+              }}
+            />
+            <div className="relative animate-float">
+              <img
+                src={heroAsset.url}
+                alt="PointPals mascots celebrating around a jar of glowing marbles"
+                width={1600}
+                height={1024}
+                className="w-full h-auto rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(236,72,153,0.35)]"
+              />
+            </div>
+          </div>
         </div>
-        <h1 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-tight">
-          Chores that feel like a game,
-          <br />
-          not a fight.
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
-          PointPals turns everyday chores and good behaviour into points the whole family fills a
-          shared jar with together — then celebrates by choosing a reward as a team.
-        </p>
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            to="/sign-up"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-7 py-3.5 text-base font-semibold text-background hover:opacity-90 transition shadow-lg"
-          >
-            Start free trial <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            to="/sign-in"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-input bg-card px-7 py-3.5 text-base font-semibold hover:bg-muted transition"
-          >
-            Log in
-          </Link>
-        </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Free for {BILLING_CONFIG.trialDays} days, then {formatPrice()}. Cancel anytime.
-        </p>
       </section>
 
       {/* companion strip */}
