@@ -92,7 +92,7 @@ const POSTS = [
       "Looking for screen-free rewards for kids? Here are family-friendly chore reward ideas that encourage connection, confidence and positive behaviour.",
     keywords: "screen-free rewards for kids, chore rewards, kids reward system, positive parenting app, family rewards",
     title: "Why Screen Time Is Not the Best Reward for Chores",
-    image: imgScreenTime,
+    image: "https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/family_reading.jpeg",
     content: <ScreenTimePost />,
   },
   {
@@ -126,7 +126,7 @@ function BlogPage() {
     <article className="mx-auto max-w-2xl md:max-w-6xl space-y-8">
       <header>
         <img
-          src={blogHero}
+          src="https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/Marble_jar_blog_header.jpeg"
           alt="An open notebook and marble jar on a soft peach blanket with crayons scattered around"
           width={1536}
           height={768}
