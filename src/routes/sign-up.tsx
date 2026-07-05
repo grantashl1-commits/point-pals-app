@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTrialWelcome } from "@/lib/emails.functions";
+import { useApp } from "@/lib/app-store";
 
 export const Route = createFileRoute("/sign-up")({
   component: SignUpPage,
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/sign-up")({
 
 function SignUpPage() {
   const navigate = useNavigate();
+  const { refreshFromServer } = useApp();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,6 +53,9 @@ function SignUpPage() {
       setErr(hhErr.message);
       return;
     }
+    // Reload the app-store from the server so the new household + membership
+    // land in state before the onboarding wizard mutates it.
+    await refreshFromServer();
     // Fire-and-forget trial-welcome email (template 01).
     sendTrialWelcome().catch(() => {});
     navigate({ to: "/onboarding" });

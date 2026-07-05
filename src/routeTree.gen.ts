@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WelcomeBackRouteImport } from './routes/welcome-back'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignUpRouteImport } from './routes/sign-up'
@@ -29,6 +30,11 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicHooksEmailCronRouteImport } from './routes/api/public/hooks/email-cron'
 
+const WelcomeBackRoute = WelcomeBackRouteImport.update({
+  id: '/welcome-back',
+  path: '/welcome-back',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof SignUpRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/welcome-back': typeof WelcomeBackRoute
   '/api/public/hooks/email-cron': typeof ApiPublicHooksEmailCronRoute
 }
 export interface FileRoutesByTo {
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof SignUpRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/welcome-back': typeof WelcomeBackRoute
   '/api/public/hooks/email-cron': typeof ApiPublicHooksEmailCronRoute
 }
 export interface FileRoutesById {
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/sign-up': typeof SignUpRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/welcome-back': typeof WelcomeBackRoute
   '/api/public/hooks/email-cron': typeof ApiPublicHooksEmailCronRoute
 }
 export interface FileRouteTypes {
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/terms'
     | '/welcome'
+    | '/welcome-back'
     | '/api/public/hooks/email-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/terms'
     | '/welcome'
+    | '/welcome-back'
     | '/api/public/hooks/email-cron'
   id:
     | '__root__'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/terms'
     | '/welcome'
+    | '/welcome-back'
     | '/api/public/hooks/email-cron'
   fileRoutesById: FileRoutesById
 }
@@ -274,11 +286,19 @@ export interface RootRouteChildren {
   SignUpRoute: typeof SignUpRoute
   TermsRoute: typeof TermsRoute
   WelcomeRoute: typeof WelcomeRoute
+  WelcomeBackRoute: typeof WelcomeBackRoute
   ApiPublicHooksEmailCronRoute: typeof ApiPublicHooksEmailCronRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/welcome-back': {
+      id: '/welcome-back'
+      path: '/welcome-back'
+      fullPath: '/welcome-back'
+      preLoaderRoute: typeof WelcomeBackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/welcome': {
       id: '/welcome'
       path: '/welcome'
@@ -434,6 +454,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignUpRoute: SignUpRoute,
   TermsRoute: TermsRoute,
   WelcomeRoute: WelcomeRoute,
+  WelcomeBackRoute: WelcomeBackRoute,
   ApiPublicHooksEmailCronRoute: ApiPublicHooksEmailCronRoute,
 }
 export const routeTree = rootRouteImport
