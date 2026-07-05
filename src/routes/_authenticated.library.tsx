@@ -320,8 +320,7 @@ function ChoreManager({
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editPanelRef = useRef<HTMLDivElement>(null);
-  const [aiPanel, setAiPanel] = useState(false);
-  const { household } = useApp();
+  const [icon, setIcon] = useState<string | null>(null);
 
   const clampPoints = (n: number) => Math.max(1, Math.min(20, n));
 
@@ -336,7 +335,7 @@ function ChoreManager({
       .filter(Boolean);
     addChore({
       name: name.trim(),
-      icon: pickIconForName(name.trim()),
+      icon: icon ?? pickIconForName(name.trim()),
       color,
       points: clampPoints(points),
       recurrence: "none",
@@ -346,6 +345,7 @@ function ChoreManager({
     setPoints(1);
     setColor("sky");
     setTagsStr("");
+    setIcon(null);
     setBusy(false);
   };
 
@@ -392,30 +392,11 @@ function ChoreManager({
             disabled={busy || !name.trim()}
             className="tap rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold flex items-center gap-2 disabled:opacity-50"
           >
-            <Sparkles className="w-4 h-4" />
             {busy ? "Adding…" : "Add chore"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setAiPanel(!aiPanel)}
-            className="tap rounded-full border border-input bg-card px-5 py-2.5 text-sm font-semibold flex items-center gap-2 hover:bg-muted transition"
-          >
-            <Wand2 className="w-4 h-4" />
-            AI icon
           </button>
         </div>
 
-        {/* AI icon generation panel */}
-        {aiPanel && (
-          <AiIconPanel
-            householdId={household.id}
-            onSelect={(iconUrl) => {
-              // icon will be used by caller after add
-              setAiPanel(false);
-            }}
-            onClose={() => setAiPanel(false)}
-          />
-        )}
+        <IconPickerGrid selected={icon} onSelect={setIcon} />
 
         <div className="flex flex-wrap gap-2 items-center">
           {PALETTE.map((c) => (
