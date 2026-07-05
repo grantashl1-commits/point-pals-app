@@ -5,7 +5,7 @@ import { useApp } from "@/lib/app-store";
 import { useHouseholdRole } from "@/lib/use-household-role";
 import { useMemories, addMemory, removeMemory, toggleLike, addComment, fetchPostFeedback } from "@/lib/memories";
 import type { MemoryCommentEntry } from "@/lib/memories";
-import { PASTEL_HEX } from "@/lib/mock-data";
+import { PASTEL_HEX, type PastelKey } from "@/lib/mock-data";
 import { CompanionAvatar } from "@/components/CompanionAvatar";
 import { trackParent } from "@/lib/analytics";
 
@@ -307,7 +307,7 @@ function Composer({ householdId, kids }: { householdId: string; kids: { id: stri
                             className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center shrink-0"
                             style={{ backgroundColor: PASTEL_HEX[k.color as keyof typeof PASTEL_HEX] ?? "#ccc" }}
                           >
-                            <CompanionAvatar seed={k.id} color={k.color as string} size={24} companionId={k.companionId} />
+                            <CompanionAvatar seed={k.id} color={k.color as PastelKey} size={24} companionId={k.companionId} />
                           </span>
                           <span className="flex-1 text-left">{k.name}</span>
                           {on && <Check className="w-3.5 h-3.5" />}
@@ -416,7 +416,7 @@ function MemoryCard({
                 className="h-8 w-8 rounded-full border-2 border-card overflow-hidden flex items-center justify-center"
                 style={{ backgroundColor: PASTEL_HEX[k.color as keyof typeof PASTEL_HEX] ?? "#ccc" }}
               >
-                <CompanionAvatar seed={k.id} color={k.color} size={28} companionId={k.companionId} />
+                <CompanionAvatar seed={k.id} color={k.color as PastelKey} size={28} companionId={k.companionId} />
               </span>
             ))
           ) : (

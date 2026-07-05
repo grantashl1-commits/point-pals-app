@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageLayout } from "@/components/PublicPageLayout";
 
-import imgResearch from "@/assets/marketing/blog-research.jpg";
+
 import imgCharacters from "@/assets/marketing/blog-characters.jpg";
-import imgChoresFun from "@/assets/marketing/blog-chores-fun.jpg";
+
 import imgMarbleJar from "@/assets/marketing/blog-marble-jar.jpg";
 
-import imgAgeChores from "@/assets/marketing/blog-age-chores.jpg";
+
 import sunnyImg from "@/assets/companions/sunny.png.asset.json";
 import pipImg from "@/assets/companions/pip.png.asset.json";
 import brambleImg from "@/assets/companions/bramble.png.asset.json";
@@ -52,7 +52,7 @@ const POSTS = [
       "Learn how PointPals uses ideas from motivation, habit formation, family routines and positive parenting to make chores feel calmer and more connected.",
     keywords: "research-backed chore app, family chore app, positive behaviour app, kids reward system, family routines",
     title: "The Research Behind PointPals",
-    image: imgResearch,
+    image: "https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/sticker_charts.jpeg",
     content: <ResearchPost />,
   },
   {
@@ -72,7 +72,7 @@ const POSTS = [
       "Learn how to make chores fun for kids without constant nagging, bribing or screen-time battles. Use points, routines and family rewards instead.",
     keywords: "make chores fun, chore app for kids, family chore app, chores without nagging, kids chores",
     title: "How to Make Chores Fun Without Bribes",
-    image: imgChoresFun,
+    image: "https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/working_in_garden.jpeg",
     content: <ChoresFunPost />,
   },
   {
@@ -102,7 +102,7 @@ const POSTS = [
       "Looking for chores for kids by age? Use this simple family chore list for toddlers, preschoolers, school-aged children and tweens.",
     keywords: "age appropriate chores for kids, chores for kids by age, chore list for kids, family chore app, kids routines",
     title: "Age-Appropriate Chores for Kids: A Family Chore List",
-    image: imgAgeChores,
+    image: "https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/family_in_kitche.jpeg",
     content: <AgeChoresPost />,
   },
 ] as const;
