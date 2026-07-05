@@ -73,6 +73,18 @@ export const Route = createFileRoute("/blog")({
 
 const POSTS = [
   {
+    id: "50-plus-screen-free-reward-ideas",
+    seoTitle: "50+ Screen-Free Reward Ideas for Kids (That Actually Work)",
+    metaDescription:
+      "50+ screen-free reward ideas for kids — from tiny wins to big family adventures. Simple, low-cost, connection-first rewards for chore charts and jars.",
+    keywords:
+      "screen-free rewards for kids, reward ideas for kids, chore rewards, non-screen rewards, family reward system, positive parenting",
+    title: "50+ Screen-Free Reward Ideas for Kids (That Actually Work)",
+    image:
+      "https://tcpbvcgvtwrqsrzerwwr.supabase.co/storage/v1/object/public/assets/family_reading.jpeg",
+    content: <ScreenFreeRewardsPost />,
+  },
+  {
     id: "research-behind-pointpals",
     seoTitle: "The Research Behind PointPals | Family Chore App",
     metaDescription:
