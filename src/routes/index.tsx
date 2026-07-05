@@ -110,15 +110,17 @@ function HomePage() {
           {canEdit && (
             <Link
               to="/library"
-              className="w-20 h-20 rounded-full border-2 border-dashed border-border flex items-center justify-center text-muted-foreground text-2xl self-start hover:border-foreground hover:text-foreground transition shrink-0"
+              className="tap w-[92px] h-[92px] rounded-full border-2 border-dashed border-border flex items-center justify-center text-muted-foreground text-2xl self-start hover:border-foreground hover:text-foreground transition shrink-0"
               aria-label="Manage family"
             >
               +
             </Link>
           )}
         </div>
-        <p className="text-center sm:text-left text-xs text-muted-foreground mt-1">
-          {canAward ? "Tap a kid to give points." : "View only — an admin or parent can give you awarding rights."}
+        <p className="text-center sm:text-left text-sm text-muted-foreground mt-1">
+          {canAward
+            ? "Tap a kid to give points."
+            : "View only — an admin or parent can give you awarding rights."}
         </p>
       </section>
 

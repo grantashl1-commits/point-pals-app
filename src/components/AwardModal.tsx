@@ -170,7 +170,7 @@ export function AwardModal({
                   setSearch("");
                   setTagFilter(null);
                 }}
-                className={`px-4 py-1.5 rounded-full text-sm font-semibold transition ${
+                className={`tap inline-flex items-center min-h-[44px] px-4 py-2 rounded-full text-sm font-semibold transition ${
                   tab === t.k ? "bg-card shadow-sm" : "text-muted-foreground"
                 }`}
               >

@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "PointPals is a warm, pastel family chore & behaviour tracker. Kids earn points toward a shared family jar and celebrate rewards chosen together.",
       },
-      { name: "theme-color", content: "#F472B6" },
+      { name: "theme-color", content: "#FBF7EC" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "PointPals" },

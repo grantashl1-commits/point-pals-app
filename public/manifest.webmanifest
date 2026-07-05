@@ -8,7 +8,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FBF7EC",
-  "theme_color": "#F3E1A0",
+  "theme_color": "#FBF7EC",
   "categories": ["lifestyle", "productivity", "education"],
   "icons": [
     {
