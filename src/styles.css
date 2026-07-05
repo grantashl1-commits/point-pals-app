@@ -37,8 +37,8 @@
 
 /* Marching mascots — walk right, wrap, and bob. */
 @keyframes pp-walk {
-  0%   { transform: translateX(-10%); }
-  100% { transform: translateX(110%); }
+  0%   { transform: translateX(-20vw); }
+  100% { transform: translateX(110vw); }
 }
 @keyframes pp-bob {
   0%, 100% { transform: translateY(0) rotate(-2deg); }
