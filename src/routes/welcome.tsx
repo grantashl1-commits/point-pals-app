@@ -13,18 +13,18 @@ export const Route = createFileRoute("/welcome")({
   component: WelcomePage,
   head: () => ({
     meta: [
-      { title: "PointPals — Family chores & behaviour, made kind" },
+      { title: "PointPals — Family Chore & Behaviour Chart, NZ-Made" },
       {
         name: "description",
         content:
-          "PointPals is a warm, pastel family chore & behaviour tracker. Kids earn points toward collectible plush companions and vote on shared rewards.",
+          "Turn chores and good behaviour into points your whole family fills a jar with — then vote on a reward together. Research-backed, kid-friendly, NZ-made.",
       },
       { name: "theme-color", content: "#F3E1A0" },
-      { property: "og:title", content: "PointPals — Family chores & behaviour, made kind" },
+      { property: "og:title", content: "PointPals — Family Chore & Behaviour Chart, NZ-Made" },
       {
         property: "og:description",
         content:
-          "PointPals is a warm, pastel family chore & behaviour tracker. Kids earn points toward collectible plush companions and vote on shared rewards.",
+          "Turn chores and good behaviour into points your whole family fills a jar with — then vote on a reward together. Research-backed, kid-friendly, NZ-made.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: heroAsset.url },
