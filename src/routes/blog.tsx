@@ -1,5 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageLayout } from "@/components/PublicPageLayout";
+import blogHero from "@/assets/marketing/blog-hero.jpg";
+import imgResearch from "@/assets/marketing/blog-research.jpg";
+import imgCharacters from "@/assets/marketing/blog-characters.jpg";
+import imgChoresFun from "@/assets/marketing/blog-chores-fun.jpg";
+import imgMarbleJar from "@/assets/marketing/blog-marble-jar.jpg";
+import imgScreenTime from "@/assets/marketing/blog-screen-time.jpg";
+import imgAgeChores from "@/assets/marketing/blog-age-chores.jpg";
 import {
   Accordion,
   AccordionItem,
@@ -29,6 +36,7 @@ const POSTS = [
       "Learn how PointPals uses ideas from motivation, habit formation, family routines and positive parenting to make chores feel calmer and more connected.",
     keywords: "research-backed chore app, family chore app, positive behaviour app, kids reward system, family routines",
     title: "The Research Behind PointPals",
+    image: imgResearch,
     content: <ResearchPost />,
   },
   {
@@ -38,6 +46,7 @@ const POSTS = [
       "Meet Sunny, Pip, Bramble, Fern, Marlow, Coda, Ridge and Ziggy — the playful PointPals characters that help make chores, kindness and family habits fun.",
     keywords: "PointPals characters, kids chore app characters, family chore app, rewards for kids, positive behaviour app",
     title: "Meet the PointPals: The Characters Behind the Family Chore App",
+    image: imgCharacters,
     content: <CharactersPost />,
   },
   {
@@ -47,6 +56,7 @@ const POSTS = [
       "Learn how to make chores fun for kids without constant nagging, bribing or screen-time battles. Use points, routines and family rewards instead.",
     keywords: "make chores fun, chore app for kids, family chore app, chores without nagging, kids chores",
     title: "How to Make Chores Fun Without Bribes",
+    image: imgChoresFun,
     content: <ChoresFunPost />,
   },
   {
@@ -56,6 +66,7 @@ const POSTS = [
       "A marble jar reward system helps children see progress by adding marbles for chores, kindness and positive habits. Learn how families can use one.",
     keywords: "marble jar reward system, family reward system, kids reward system, chore rewards, reward app for kids",
     title: "What Is a Marble Jar Reward System?",
+    image: imgMarbleJar,
     content: <MarbleJarPost />,
   },
   {
@@ -65,6 +76,7 @@ const POSTS = [
       "Looking for screen-free rewards for kids? Here are family-friendly chore reward ideas that encourage connection, confidence and positive behaviour.",
     keywords: "screen-free rewards for kids, chore rewards, kids reward system, positive parenting app, family rewards",
     title: "Why Screen Time Is Not the Best Reward for Chores",
+    image: imgScreenTime,
     content: <ScreenTimePost />,
   },
   {
@@ -74,6 +86,7 @@ const POSTS = [
       "Looking for chores for kids by age? Use this simple family chore list for toddlers, preschoolers, school-aged children and tweens.",
     keywords: "age appropriate chores for kids, chores for kids by age, chore list for kids, family chore app, kids routines",
     title: "Age-Appropriate Chores for Kids: A Family Chore List",
+    image: imgAgeChores,
     content: <AgeChoresPost />,
   },
 ] as const;
@@ -83,6 +96,13 @@ function BlogPage() {
     <PublicPageLayout>
     <article className="mx-auto max-w-2xl space-y-8">
       <header>
+        <img
+          src={blogHero}
+          alt="An open notebook and marble jar on a soft peach blanket with crayons scattered around"
+          width={1536}
+          height={768}
+          className="w-full h-auto rounded-3xl shadow-sm mb-6"
+        />
         <h1 className="font-display text-4xl font-bold">PointPals Blog</h1>
         <p className="mt-3 text-muted-foreground leading-relaxed">
           Research, tips, and stories about building family habits — from chore strategies to
