@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageLayout } from "@/components/PublicPageLayout";
 
-import imgResearch from "@/assets/marketing/blog-research.jpg";
+
 import imgCharacters from "@/assets/marketing/blog-characters.jpg";
 
 import imgMarbleJar from "@/assets/marketing/blog-marble-jar.jpg";
