@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
-import { BadgeCheck, Heart, Gift, ArrowRight } from "lucide-react";
+import { BadgeCheck, Sparkles, Heart, Gift, ArrowRight } from "lucide-react";
 import { formatPrice, BILLING_CONFIG } from "@/lib/entitlements";
 import heroAsset from "@/assets/brand/pp-hero.asset.json";
 import { url as logoUrl } from "@/assets/brand/pointpals-logo-points.asset.json";
