@@ -453,14 +453,6 @@ export const INITIAL_CHORES: Chore[] = [
 
 export const INITIAL_SKILLS: Skill[] = [
   {
-    id: "s1",
-    name: "Being helpful",
-    icon: A("helped-without-being-asked.png"),
-    color: "butter",
-    points: 1,
-    isPositive: true,
-  },
-  {
     id: "s2",
     name: "Being independent",
     icon: A("being-independent.png"),
