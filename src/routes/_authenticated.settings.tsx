@@ -458,7 +458,6 @@ function SettingsPage() {
       </section>
 
       {/* Sound & haptics */}
-      {(role === null || role !== "viewer") && (
       <section className="space-y-3">
         <SectionTitle icon={<Volume2 className="h-4 w-4" />}>Sound &amp; feel</SectionTitle>
         <div className="card-soft divide-y divide-border">
@@ -485,7 +484,6 @@ function SettingsPage() {
           />
         </div>
       </section>
-      )}
 
       {/* Sibling leaderboard — off by default */}
       {(role === null || role !== "viewer") && (
