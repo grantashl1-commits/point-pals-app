@@ -252,6 +252,29 @@ const SECTIONS: FaqSection[] = [
         ),
       },
       {
+        id: "marble-target-cap",
+        question: "Why don't marbles drop one-for-one when the target is higher than 90?",
+        content: (
+          <>
+            <p>
+              The jar animation is capped at 90 marbles so it stays smooth on phones and tablets. If
+              your family sets a reward target above 90, each marble represents a chunk of points
+              rather than a single point.
+            </p>
+            <p>
+              For example, a target of 300 means each marble is worth about 3.3 points. The jar still
+              fills honestly to 100% of the target — it just reaches 90 marbles at the 300-point mark
+              instead of showing 300 individual marbles.
+            </p>
+            <p>
+              To make sure every award still feels acknowledged, a soft <strong>+N</strong> floater
+              appears above the jar for every positive point award, even when it is not yet enough to
+              drop a full marble.
+            </p>
+          </>
+        ),
+      },
+      {
         id: "isnt-bribery",
         question: "Isn't this just bribery?",
         content: (
