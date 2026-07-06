@@ -8,6 +8,7 @@ import { HeroJarScene } from "@/components/HeroJarScene";
 import { WalkingMascots } from "@/components/WalkingMascots";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ThemeTune } from "@/components/ThemeTune";
+import { playChime } from "@/lib/feedback";
 
 export const Route = createFileRoute("/welcome")({
   component: WelcomePage,
@@ -54,6 +55,9 @@ function WelcomePage() {
   const addPoints = useCallback(
     (n: number, tint?: string) => {
       if (celebrating) return;
+      // Positive chime plays synchronously inside the mascot-tap gesture so
+      // iOS Safari honours it.
+      playChime("positive");
       setValue((v) => Math.min(TARGET, v + n));
       if (tint) {
         setPendingDrops((d) => [...d, { n, tint }]);
