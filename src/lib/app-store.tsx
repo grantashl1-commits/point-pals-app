@@ -324,8 +324,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const bundle = await fetchHouseholdBundle(hid);
     if (!bundle) return;
     householdIdRef.current = hid;
+
+    // ── Boot-time trial expiry check (§5) ─────────────────────────────
+    // If the server says we're trialing but the trial timestamp is in the
+    // past, transition to "free" locally AND on the server so the route
+    // guard (see _authenticated.tsx) redirects to the paywall.
+    const hh = bundle.household;
+    if (hh.subscriptionStatus === "trialing" && hh.trialEndsAt && Date.now() > hh.trialEndsAt) {
+      hh.subscriptionStatus = "free";
+      // Fire-and-forget server write — we won't block boot on it.
+      supabase.from("households").update({ subscription_status: "free" }).eq("id", hid).then();
+    }
+
     setState({
-      household: bundle.household,
+      household: hh,
       kids: bundle.kids,
       chores: bundle.chores,
       skills: bundle.skills,
