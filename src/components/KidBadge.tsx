@@ -2,34 +2,40 @@ import { useEffect, useRef, useState } from "react";
 import { PASTEL_HEX, type Kid } from "@/lib/mock-data";
 import { CompanionAvatar } from "./CompanionAvatar";
 
-// A kid, shown as their chosen companion avatar with a live point-total badge
-// that scale-bounces + colour-flashes whenever it changes (§2), and an optional
-// streak flame (§4).
+// A kid, shown as their chosen companion avatar with a live point bubble
+// positioned at the avatar's top-right (§2), and an optional streak flame (§4).
+// The bubble number should match the individual jar value when split jars are
+// active — the parent passes `points` to control which total is displayed.
 export function KidBadge({
   kid,
   selected = false,
   onClick,
   size = "md",
   streak = 0,
+  points,
 }: {
   kid: Kid;
   selected?: boolean;
   onClick?: () => void;
   size?: "sm" | "md" | "lg";
   streak?: number;
+  /** Override for the bubble number (e.g. personalPool when split jars on).
+   *  Falls back to kid.currentPoints when omitted. */
+  points?: number;
 }) {
   const dim = { sm: 44, md: 60, lg: 92 }[size];
+  const displayPoints = points ?? kid.currentPoints;
   const [flash, setFlash] = useState<"up" | "down" | null>(null);
-  const prev = useRef(kid.currentPoints);
+  const prev = useRef(displayPoints);
 
   useEffect(() => {
-    if (kid.currentPoints === prev.current) return;
-    const dir = kid.currentPoints > prev.current ? "up" : "down";
-    prev.current = kid.currentPoints;
+    if (displayPoints === prev.current) return;
+    const dir = displayPoints > prev.current ? "up" : "down";
+    prev.current = displayPoints;
     setFlash(dir);
     const t = setTimeout(() => setFlash(null), 600);
     return () => clearTimeout(t);
-  }, [kid.currentPoints]);
+  }, [displayPoints]);
 
   return (
     <button
@@ -52,10 +58,29 @@ export function KidBadge({
           />
         </div>
 
-        {/* streak flame */}
+        {/* Point bubble — top-right of the avatar, outside the circle */}
+        <div
+          className={`absolute -top-1 -right-2 min-w-[24px] h-[24px] rounded-full flex items-center justify-center shadow-sm px-1.5 transition-transform ${
+            flash === "up"
+              ? "scale-125"
+              : flash === "down"
+                ? "scale-90"
+                : ""
+          }`}
+          style={{
+            backgroundColor: PASTEL_HEX[kid.color],
+            color: "#fff",
+          }}
+        >
+          <span className="font-display text-[11px] font-bold leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]">
+            {displayPoints}
+          </span>
+        </div>
+
+        {/* Streak flame — shifted to top-left so it doesn't overlap the bubble */}
         {streak >= 2 && (
           <div
-            className="absolute -top-1.5 -right-1.5 rounded-full bg-sage/70 px-2 py-0.5 shadow-sm"
+            className="absolute -top-1.5 -left-1.5 rounded-full bg-sage/70 px-2 py-0.5 shadow-sm"
             title={`${streak}-day streak`}
           >
             <span className="font-display text-[11px] font-bold leading-none text-foreground">
@@ -66,19 +91,6 @@ export function KidBadge({
       </div>
 
       <div className="text-sm font-semibold text-foreground/80">{kid.name}</div>
-      {size !== "sm" && (
-        <div
-          className={`font-display text-lg font-bold leading-none -mt-1 rounded-full px-2 transition-colors ${
-            flash === "up"
-              ? "animate-badge-bounce bg-sage/70"
-              : flash === "down"
-                ? "animate-badge-bounce-neg bg-destructive/15"
-                : ""
-          }`}
-        >
-          {kid.currentPoints}
-        </div>
-      )}
     </button>
   );
 }

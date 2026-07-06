@@ -115,6 +115,7 @@ function HomePage() {
                 kid={kid}
                 size="lg"
                 streak={mounted ? (streakByKid[kid.id] ?? 0) : 0}
+                points={household.splitJarsEnabled ? kid.personalPool : kid.currentPoints}
                 onClick={() => openKid(kid.id)}
               />
             </div>
@@ -131,7 +132,7 @@ function HomePage() {
         </div>
         <p className="text-center sm:text-left text-sm text-muted-foreground mt-1">
           {canAward
-            ? "Tap a kid to give points."
+            ? "Tap a character to award points."
             : "View only — an admin or parent can give you awarding rights."}
         </p>
       </section>
