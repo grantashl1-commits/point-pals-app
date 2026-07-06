@@ -71,12 +71,15 @@ function SettingsPage() {
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [myDisplayName, setMyDisplayName] = useState("");
+  const [displayNameSaved, setDisplayNameSaved] = useState(false);
+  const [savingName, setSavingName] = useState(false);
 
   const { role, userId, isAdmin } = useHouseholdRole(household.id);
   const isLive = !!userId; // signed in against Supabase household
-  const [members, setMembers] = useState<{ user_id: string; role: string; created_at: string }[]>(
-    [],
-  );
+  const [members, setMembers] = useState<
+    { user_id: string; role: string; created_at: string; display_name: string | null }[]
+  >([],);
   const [invites, setInvites] = useState<
     { id: string; code: string; role: string; expires_at: string; used_at: string | null }[]
   >([]);
@@ -88,7 +91,7 @@ function SettingsPage() {
     const [{ data: m }, { data: inv }] = await Promise.all([
       supabase
         .from("household_members")
-        .select("user_id, role, created_at")
+        .select("user_id, role, created_at, display_name")
         .eq("household_id", household.id)
         .order("created_at", { ascending: true }),
       supabase
@@ -103,10 +106,41 @@ function SettingsPage() {
     setMembersLoading(false);
   }
 
+  // Initialise my display name from loaded data
+  useEffect(() => {
+    if (userId && members.length > 0) {
+      const me = members.find((m) => m.user_id === userId);
+      if (me && !myDisplayName) {
+        setMyDisplayName(me.display_name ?? "");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, members]);
+
   useEffect(() => {
     void loadMembersAndInvites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLive, household.id]);
+
+  const saveDisplayName = async () => {
+    if (!userId || !isLive) return;
+    setSavingName(true);
+    setDisplayNameSaved(false);
+    const displayName = myDisplayName.trim() || null;
+    const { error } = await supabase
+      .from("household_members")
+      .update({ display_name: displayName })
+      .eq("household_id", household.id)
+      .eq("user_id", userId);
+    setSavingName(false);
+    if (error) {
+      console.error("Failed to save display name:", error);
+      return;
+    }
+    setDisplayNameSaved(true);
+    setTimeout(() => setDisplayNameSaved(false), 2500);
+    void loadMembersAndInvites();
+  };
 
   const revokeInvite = async (id: string) => {
     if (!window.confirm("Revoke this invite? The code will stop working immediately.")) return;
@@ -233,30 +267,42 @@ function SettingsPage() {
               <div className="text-xs text-muted-foreground">No members yet.</div>
             ) : (
               <ul className="divide-y divide-border">
-                {members.map((m) => (
-                  <li key={m.user_id} className="flex items-center gap-3 py-2.5">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                      <UserRound className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold truncate">
-                        {m.user_id === userId ? "You" : `Member · ${m.user_id.slice(0, 8)}`}
+                {members.map((m) => {
+                  const isMe = m.user_id === userId;
+                  const displayName = m.display_name?.trim() || null;
+                  return (
+                    <li key={m.user_id} className="flex items-center gap-3 py-2.5">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <UserRound className="w-4 h-4 text-muted-foreground" />
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Joined {new Date(m.created_at).toLocaleDateString()}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold truncate">
+                          {isMe ? "You" : displayName ?? `Member · ${m.user_id.slice(0, 8)}`}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Joined {new Date(m.created_at).toLocaleDateString()}
+                          {displayName && !isMe && (
+                            <>
+                              {" · "}
+                              <span className="font-mono text-[10px]">
+                                {m.user_id.slice(0, 8)}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <RoleBadge role={m.role as HouseholdRole} />
-                      {isAdmin && m.user_id !== userId && (m.role as HouseholdRole) !== "admin" && (
-                        <PromoteButton
-                          targetUserId={m.user_id}
-                          onPromoted={loadMembersAndInvites}
-                        />
-                      )}
-                    </div>
-                  </li>
-                ))}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <RoleBadge role={m.role as HouseholdRole} />
+                        {isAdmin && !isMe && (m.role as HouseholdRole) !== "admin" && (
+                          <PromoteButton
+                            targetUserId={m.user_id}
+                            onPromoted={loadMembersAndInvites}
+                          />
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -412,6 +458,7 @@ function SettingsPage() {
       </section>
 
       {/* Sound & haptics */}
+      {(role === null || role !== "viewer") && (
       <section className="space-y-3">
         <SectionTitle icon={<Volume2 className="h-4 w-4" />}>Sound &amp; feel</SectionTitle>
         <div className="card-soft divide-y divide-border">
@@ -438,8 +485,10 @@ function SettingsPage() {
           />
         </div>
       </section>
+      )}
 
       {/* Sibling leaderboard — off by default */}
+      {(role === null || role !== "viewer") && (
       <section className="space-y-3">
         <SectionTitle icon={<Trophy className="h-4 w-4" />}>Sibling leaderboard</SectionTitle>
         <div className="card-soft p-1">
@@ -479,8 +528,10 @@ function SettingsPage() {
           </div>
         )}
       </section>
+      )}
 
       {/* Your data */}
+      {(role === null || role !== "viewer") && (
       <section className="space-y-3">
         <SectionTitle icon={<Download className="h-4 w-4" />}>Your data</SectionTitle>
         <div className="card-soft p-5 space-y-3">
@@ -503,6 +554,7 @@ function SettingsPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Sign out */}
       <section className="space-y-3">
