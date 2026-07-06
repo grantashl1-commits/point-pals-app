@@ -163,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/subscribe': typeof AuthenticatedSubscribeRoute
   '/welcome-back': typeof AuthenticatedWelcomeBackRoute
   '/api/public/hooks/email-cron': typeof ApiPublicHooksEmailCronRoute
 }
@@ -185,6 +186,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/subscribe': typeof AuthenticatedSubscribeRoute
   '/welcome-back': typeof AuthenticatedWelcomeBackRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/hooks/email-cron': typeof ApiPublicHooksEmailCronRoute
@@ -210,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/subscribe': typeof AuthenticatedSubscribeRoute
   '/_authenticated/welcome-back': typeof AuthenticatedWelcomeBackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/hooks/email-cron': typeof ApiPublicHooksEmailCronRoute
@@ -236,6 +239,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/rewards'
     | '/settings'
+    | '/subscribe'
     | '/welcome-back'
     | '/api/public/hooks/email-cron'
   fileRoutesByTo: FileRoutesByTo
@@ -258,6 +262,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/rewards'
     | '/settings'
+    | '/subscribe'
     | '/welcome-back'
     | '/'
     | '/api/public/hooks/email-cron'
@@ -282,6 +287,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/rewards'
     | '/_authenticated/settings'
+    | '/_authenticated/subscribe'
     | '/_authenticated/welcome-back'
     | '/_authenticated/'
     | '/api/public/hooks/email-cron'
@@ -416,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/subscribe': {
+      id: '/_authenticated/subscribe'
+      path: '/subscribe'
+      fullPath: '/subscribe'
+      preLoaderRoute: typeof AuthenticatedSubscribeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/rewards': {
