@@ -611,7 +611,7 @@ export function MarbleJar({
         raf.current = null;
       }
     };
-  }, [events, kids, renderSize, target, perMarble, reducedMotion, value, pendingDrops]);
+  }, [events, kids, renderSize, target, perMarble, reducedMotion, value, pendingDrops, suppressDissolveChime]);
 
   // Fire the "full" celebration exactly once when we cross the target.
   useEffect(() => {
