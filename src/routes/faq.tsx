@@ -80,6 +80,8 @@ const FAQ_SCHEMA: { q: string; a: string }[] = [
     a: "PointPals is free to try. A single low-cost family subscription unlocks the full app for every child and every parent in your household.",
   },
 ];
+
+type FaqEntry = { id: string; question: string; content: ReactNode };
 type FaqSection = { heading: string; items: FaqEntry[] };
 
 const SECTIONS: FaqSection[] = [
