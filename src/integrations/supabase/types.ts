@@ -183,8 +183,6 @@ export type Database = {
           shared_pool: number
           split_jars_enabled: boolean
           split_ratio: number
-          split_mode: string
-          shared_jar_enabled: boolean
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string
@@ -210,8 +208,6 @@ export type Database = {
           shared_pool?: number
           split_jars_enabled?: boolean
           split_ratio?: number
-          split_mode?: string
-          shared_jar_enabled?: boolean
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string
@@ -237,8 +233,6 @@ export type Database = {
           shared_pool?: number
           split_jars_enabled?: boolean
           split_ratio?: number
-          split_mode?: string
-          shared_jar_enabled?: boolean
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string
@@ -731,7 +725,10 @@ export type Database = {
         Returns: boolean
       }
       is_member: { Args: { hid: string }; Returns: boolean }
-      promote_household_member: { Args: { target_user_id: string; new_role: string }; Returns: Json }
+      promote_household_member: {
+        Args: { new_role: string; target_user_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
