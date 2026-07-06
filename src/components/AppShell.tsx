@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Home, Star, Camera, Settings, ChevronLeft } from "lucide-react";
 import { useApp } from "@/lib/app-store";
 import { useBackNav, isRootTab, pageTitle } from "@/lib/navigation";
@@ -44,6 +44,59 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { goBack } = useBackNav();
   const pct = Math.min(100, (household.sharedPool / household.rewardTarget) * 100);
 
+  // Always start a newly-navigated page at the top. TanStack's built-in scroll
+  // restoration handles back/forward, but new pushes on this app were landing
+  // wherever the previous page had scrolled to.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  // Pull-to-refresh (mobile). Only engages when the page is at the very top
+  // and the user drags down past PTR_THRESHOLD; releasing triggers reload.
+  const ptrStart = useRef<number | null>(null);
+  const [ptrPull, setPtrPull] = useState(0);
+  const [ptrRefreshing, setPtrRefreshing] = useState(false);
+  const PTR_THRESHOLD = 70;
+
+  useEffect(() => {
+    const onTouchStart = (e: TouchEvent) => {
+      if (window.scrollY > 0) {
+        ptrStart.current = null;
+        return;
+      }
+      ptrStart.current = e.touches[0].clientY;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (ptrStart.current == null) return;
+      const dy = e.touches[0].clientY - ptrStart.current;
+      if (dy > 0 && window.scrollY <= 0) {
+        // Rubber-band: dampen past threshold
+        const pull = Math.min(dy, 140);
+        setPtrPull(pull);
+      } else {
+        setPtrPull(0);
+      }
+    };
+    const onTouchEnd = () => {
+      if (ptrPull >= PTR_THRESHOLD) {
+        setPtrRefreshing(true);
+        setPtrPull(60);
+        setTimeout(() => window.location.reload(), 250);
+      } else {
+        setPtrPull(0);
+      }
+      ptrStart.current = null;
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [ptrPull]);
+
   // Chrome-free routes: marketing page + auth pages.
   const CHROME_FREE = [
     "/welcome",
@@ -68,6 +121,25 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen pp-app-pad md:pl-56">
+      {/* Pull-to-refresh indicator (mobile). Sits above the header, only
+          visible while pulling or refreshing. */}
+      {(ptrPull > 0 || ptrRefreshing) && (
+        <div
+          className="md:hidden fixed inset-x-0 top-0 z-40 flex items-start justify-center pointer-events-none"
+          style={{ transform: `translateY(${Math.min(ptrPull, 80)}px)` }}
+          aria-hidden="true"
+        >
+          <div
+            className={`mt-2 h-8 w-8 rounded-full border-2 border-foreground/30 border-t-foreground ${
+              ptrRefreshing || ptrPull >= PTR_THRESHOLD ? "animate-spin" : ""
+            }`}
+            style={{
+              opacity: Math.min(1, ptrPull / PTR_THRESHOLD),
+            }}
+          />
+        </div>
+      )}
+
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-56 flex-col border-r border-border bg-card/60 backdrop-blur px-4 py-6 z-30">
         <Link to="/" className="block mb-6">
