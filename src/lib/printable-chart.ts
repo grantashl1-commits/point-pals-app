@@ -590,35 +590,18 @@ function slug(s: string): string {
 }
 
 /**
- * Generate this week's printable chart for a kid and hand it to them as a real PDF —
- * via the Web Share API (so it can go straight to Files/Photos/a printer) where
- * supported, falling back to a direct download otherwise.
+ * Generate this week's printable chart for a kid and download it as a real PDF
+ * file into the browser's Downloads folder. We used to route through the Web
+ * Share API on capable devices, but on Android that opens a share sheet — if
+ * the user dismisses it or picks an app that can't preview PDFs, nothing ever
+ * lands in Downloads and the "Download" button appears to do nothing. A plain
+ * anchor download is predictable across every browser (Chrome Android, iOS
+ * Safari, desktop) and always produces an openable file.
  */
 export async function downloadKidChart(input: SheetInput): Promise<ChartResult> {
   const { canvas, shown, total, truncated } = await renderSheet(input);
   const blob = await canvasToPdfBlob(canvas);
   const filename = `${slug(input.kid.name)}-chart-${format(new Date(), "yyyy-MM-dd")}.pdf`;
-
-  const file = new File([blob], filename, { type: "application/pdf" });
-  const nav = navigator as Navigator & {
-    canShare?: (data?: ShareData) => boolean;
-  };
-
-  try {
-    if (nav.canShare?.({ files: [file] })) {
-      await nav.share({
-        files: [file],
-        title: `${input.kid.name}'s weekly chart`,
-        text: `${input.kid.name}'s PointPals chore chart for this week.`,
-      });
-      return { status: "shared", truncated, shown, total };
-    }
-  } catch (err) {
-    if ((err as Error)?.name === "AbortError") {
-      return { status: "cancelled", truncated, shown, total };
-    }
-    // any other share failure falls through to a plain download
-  }
 
   downloadBlob(blob, filename);
   return { status: "downloaded", truncated, shown, total };
