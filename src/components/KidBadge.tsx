@@ -3,7 +3,7 @@ import { PASTEL_HEX, type Kid } from "@/lib/mock-data";
 import { CompanionAvatar } from "./CompanionAvatar";
 
 // A kid, shown as their chosen companion avatar with a live point bubble
-// positioned at the avatar's top-right (§2), and an optional streak flame (§4).
+// positioned at the avatar's top-right (§2).
 // The bubble number should match the individual jar value when split jars are
 // active — the parent passes `points` to control which total is displayed.
 export function KidBadge({
@@ -11,14 +11,12 @@ export function KidBadge({
   selected = false,
   onClick,
   size = "md",
-  streak = 0,
   points,
 }: {
   kid: Kid;
   selected?: boolean;
   onClick?: () => void;
   size?: "sm" | "md" | "lg";
-  streak?: number;
   /** Override for the bubble number (e.g. personalPool when split jars on).
    *  Falls back to kid.currentPoints when omitted. */
   points?: number;
@@ -76,18 +74,6 @@ export function KidBadge({
             {displayPoints}
           </span>
         </div>
-
-        {/* Streak flame — shifted to top-left so it doesn't overlap the bubble */}
-        {streak >= 2 && (
-          <div
-            className="absolute -top-1.5 -left-1.5 rounded-full bg-sage/70 px-2 py-0.5 shadow-sm"
-            title={`${streak}-day streak`}
-          >
-            <span className="font-display text-[11px] font-bold leading-none text-foreground">
-              +{streak}
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="text-sm font-semibold text-foreground/80">{kid.name}</div>

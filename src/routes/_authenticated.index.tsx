@@ -114,7 +114,6 @@ function HomePage() {
               <KidBadge
                 kid={kid}
                 size="lg"
-                streak={mounted ? (streakByKid[kid.id] ?? 0) : 0}
                 points={household.splitJarsEnabled ? kid.personalPool : kid.currentPoints}
                 onClick={() => openKid(kid.id)}
               />
