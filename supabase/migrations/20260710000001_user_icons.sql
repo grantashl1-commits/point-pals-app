@@ -25,12 +25,30 @@ alter table public.user_icons enable row level security;
 
 create policy "households can view their own icons"
   on public.user_icons for select
-  using (household_id = (select (auth.jwt() ->> 'household_id')::uuid));
+  using (public.is_member(household_id));
 
 create policy "households can insert their own icons"
   on public.user_icons for insert
-  with check (household_id = (select (auth.jwt() ->> 'household_id')::uuid));
+  with check (public.is_member(household_id));
 
 create policy "households can soft-delete their own icons"
   on public.user_icons for update
-  using (household_id = (select (auth.jwt() ->> 'household_id')::uuid));
+  using (public.is_member(household_id));
+
+-- Storage bucket for uploaded icons
+insert into storage.buckets (id, name, public)
+values ('assets', 'assets', true)
+on conflict (id) do nothing;
+
+-- Allow public read access to assets bucket
+create policy "public read access"
+  on storage.objects for select
+  using (bucket_id = 'assets');
+
+-- Allow authenticated inserts to assets/uploads path
+create policy "members can upload icons"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'assets'
+    and auth.role() = 'authenticated'
+  );
