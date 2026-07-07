@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/app-store";
 import { useHouseholdRole } from "@/lib/use-household-role";
 import { IconTile } from "@/components/IconTile";
@@ -10,7 +10,7 @@ import type { Chore, PastelKey } from "@/lib/mock-data";
 import { COMPANIONS, PASTEL_HEX } from "@/lib/mock-data";
 import { ICON_KEYS, iconUrl, storageUrl } from "@/lib/icons";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Pencil, X, Check, Wand2, Upload, Image } from "lucide-react";
+import { Trash2, Pencil, X, Check, Wand2, Upload, Image, Eye, EyeOff } from "lucide-react";
 
 function IconPickerGrid({
   selected,
@@ -56,7 +56,36 @@ const { data, error } = await (supabase.from("user_icons") as any)
     };
   }, [household?.id]);
 
+  const storageKey = household?.id ? `icon-visibility-${household.id}` : null;
+  const [showAll, setShowAll] = useState(false);
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!household?.id) return;
+    try {
+      const raw = localStorage.getItem(`icon-visibility-${household.id}`);
+      if (raw) setHiddenKeys(new Set(JSON.parse(raw)));
+    } catch {}
+  }, [household?.id]);
+
+  const toggleHidden = useCallback(
+    (key: string) => {
+      setHiddenKeys((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        try {
+          if (storageKey) localStorage.setItem(storageKey, JSON.stringify([...next]));
+        } catch {}
+        return next;
+      });
+    },
+    [storageKey],
+  );
+
   const hasUserIcons = userIcons.length > 0;
+  const visibleIcons = showAll ? ICON_KEYS : ICON_KEYS.filter((k) => !hiddenKeys.has(k) || selected === k);
+  const hiddenCount = ICON_KEYS.filter((k) => hiddenKeys.has(k)).length;
 
   return (
     <div>
@@ -181,21 +210,40 @@ const { data, error } = await (supabase.from("user_icons") as any)
         )}
 
         {/* Registry icons */}
+        {hiddenCount > 0 && (
+          <div className="flex items-center justify-end mt-1.5 mb-0.5 px-0.5">
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="tap text-[11px] font-semibold text-muted-foreground hover:text-foreground transition"
+            >
+              {showAll ? `Show fewer (${ICON_KEYS.length - hiddenCount} visible)` : `Show all (${ICON_KEYS.length} icons)`}
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
-          {ICON_KEYS.map((k) => {
+          {visibleIcons.map((k) => {
             const on = selected === k;
+            const hidden = hiddenKeys.has(k);
             return (
-              <button
-                type="button"
+              <div
                 key={k}
-                onClick={() => onSelect(k)}
+                role="button"
+                tabIndex={0}
                 aria-pressed={on}
-                aria-label={`Icon ${k}`}
-                className={`tap aspect-square rounded-xl bg-card flex items-center justify-center transition ${
+                aria-label={`Icon ${k}${hidden ? " (hidden)" : ""}`}
+                onClick={() => { if (!on && !hidden) onSelect(k); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (!on && !hidden) onSelect(k);
+                  }
+                }}
+                className={`tap aspect-square rounded-xl bg-card flex items-center justify-center transition relative cursor-pointer ${
                   on
                     ? "ring-2 ring-foreground scale-95"
                     : "hover:scale-105 border border-border/60"
-                }`}
+                } ${hidden ? "opacity-40" : ""}`}
               >
                 <img
                   src={iconUrl(k)}
@@ -204,7 +252,22 @@ const { data, error } = await (supabase.from("user_icons") as any)
                   className="w-[86%] h-[86%] object-contain pointer-events-none"
                   draggable={false}
                 />
-              </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleHidden(k);
+                  }}
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-background shadow-sm border border-border/60 flex items-center justify-center opacity-0 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  title={hidden ? "Show icon" : "Hide icon"}
+                >
+                  {hidden ? (
+                    <EyeOff className="w-3 h-3 text-muted-foreground" />
+                  ) : (
+                    <Eye className="w-3 h-3 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
             );
           })}
         </div>
