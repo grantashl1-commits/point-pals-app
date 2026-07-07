@@ -62,6 +62,8 @@ export type Household = {
   /** When false, the shared family jar is hidden entirely. All points flow to
    *  individual personal jars only. A mini MarbleJar per kid is shown on home. */
   sharedJarEnabled: boolean;
+  activeRewardName: string | null;
+  activeRewardTarget: number | null;
 };
 
 // A reversible award batch, kept only until its undo window closes (§2).

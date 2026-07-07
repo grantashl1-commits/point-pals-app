@@ -69,6 +69,8 @@ export function mapHousehold(row: DbHousehold): Household {
     splitRatio: (row as { split_ratio?: number }).split_ratio ?? 50,
     splitMode: (row as { split_mode?: string }).split_mode === "match" ? "match" : "percentage",
     sharedJarEnabled: (row as { shared_jar_enabled?: boolean }).shared_jar_enabled ?? true,
+    activeRewardName: (row as { active_reward_name?: string | null }).active_reward_name ?? null,
+    activeRewardTarget: (row as { active_reward_target?: number | null }).active_reward_target ?? null,
   };
 }
 

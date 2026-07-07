@@ -62,6 +62,19 @@ export function CorrectionProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
+  // Live mode: hydrate active reward from household row (server source of truth).
+  useEffect(() => {
+    if (!live || !household.id) return;
+    if (household.activeRewardName) {
+      setActiveRewardState({
+        name: household.activeRewardName,
+        targetPoints: household.activeRewardTarget ?? household.rewardTarget,
+      });
+    } else {
+      setActiveRewardState(null);
+    }
+  }, [live, household.id, household.activeRewardName, household.activeRewardTarget]);;
+
   // Persist on change (both modes — the active reward has no server home yet,
   // and a cached copy of history is harmless if the server list loads over it).
   useEffect(() => {

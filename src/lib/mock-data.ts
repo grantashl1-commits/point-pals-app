@@ -720,6 +720,8 @@ export const INITIAL_HOUSEHOLD = {
   splitRatio: 50,
   splitMode: "percentage" as const,
   sharedJarEnabled: true,
+  activeRewardName: null,
+  activeRewardTarget: null,
 };
 
 const DAY = 1000 * 60 * 60 * 24;
