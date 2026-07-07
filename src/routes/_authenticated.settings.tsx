@@ -101,7 +101,7 @@ function SettingsPage() {
         .is("used_at", null)
         .order("created_at", { ascending: false }),
     ]);
-    setMembers((m ?? []) as typeof members);
+    setMembers((m ?? []) as unknown as typeof members);
     setInvites(inv ?? []);
     setMembersLoading(false);
   }
