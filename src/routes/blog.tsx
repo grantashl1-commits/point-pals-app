@@ -2,19 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageLayout } from "@/components/PublicPageLayout";
 
 
-import imgCharacters from "@/assets/marketing/blog-characters.jpg";
-
-
-
-
-import sunnyImg from "@/assets/companions/sunny.png.asset.json";
-import pipImg from "@/assets/companions/pip.png.asset.json";
-import brambleImg from "@/assets/companions/bramble.png.asset.json";
-import fernImg from "@/assets/companions/fern.png.asset.json";
-import marlowImg from "@/assets/companions/marlow.png.asset.json";
-import codaImg from "@/assets/companions/coda.png.asset.json";
-import ridgeImg from "@/assets/companions/ridge.png.asset.json";
-import ziggyImg from "@/assets/companions/ziggy.png.asset.json";
+import { BLOG_CHARACTERS, COMPANION_URLS } from "@/lib/image-urls";
 import {
   Accordion,
   AccordionItem,
@@ -455,14 +443,14 @@ function ResearchPost() {
 /* ── Blog Post 2: Meet the PointPals Characters ── */
 function CharactersPost() {
   const characters = [
-    { name: "Sunny", img: sunnyImg.url, symbol: "a glowing heart", tag: "kindness, empathy and helpful behaviour", verb: "celebrates", color: "warm, cheerful and encouraging" },
-    { name: "Pip", img: pipImg.url, symbol: "a book", tag: "curiosity, reading and learning", verb: "perfect for", color: "curious and thoughtful" },
-    { name: "Bramble", img: brambleImg.url, symbol: "a star", tag: "effort, encouragement and little wins", verb: "represents", color: "calm and steady" },
-    { name: "Fern", img: fernImg.url, symbol: "a leaf", tag: "growth, calm and care", verb: "represents", color: "soft and nature-inspired" },
-    { name: "Marlow", img: marlowImg.url, symbol: "helping hands", tag: "teamwork, service and family contribution", verb: "is all about", color: "warm and collaborative" },
-    { name: "Coda", img: codaImg.url, symbol: "a footprint", tag: "progress, movement and taking the next step", verb: "represents", color: "encouraging" },
-    { name: "Ridge", img: ridgeImg.url, symbol: "a mountain", tag: "resilience, courage and doing hard things", verb: "represents", color: "strong and steady" },
-    { name: "Ziggy", img: ziggyImg.url, symbol: "a paintbrush", tag: "imagination, play and self-expression", verb: "represents", color: "playful and creative" },
+    { name: "Sunny", img: COMPANION_URLS.sunny, symbol: "a glowing heart", tag: "kindness, empathy and helpful behaviour", verb: "celebrates", color: "warm, cheerful and encouraging" },
+    { name: "Pip", img: COMPANION_URLS.pip, symbol: "a book", tag: "curiosity, reading and learning", verb: "perfect for", color: "curious and thoughtful" },
+    { name: "Bramble", img: COMPANION_URLS.bramble, symbol: "a star", tag: "effort, encouragement and little wins", verb: "represents", color: "calm and steady" },
+    { name: "Fern", img: COMPANION_URLS.fern, symbol: "a leaf", tag: "growth, calm and care", verb: "represents", color: "soft and nature-inspired" },
+    { name: "Marlow", img: COMPANION_URLS.marlow, symbol: "helping hands", tag: "teamwork, service and family contribution", verb: "is all about", color: "warm and collaborative" },
+    { name: "Coda", img: COMPANION_URLS.coda, symbol: "a footprint", tag: "progress, movement and taking the next step", verb: "represents", color: "encouraging" },
+    { name: "Ridge", img: COMPANION_URLS.ridge, symbol: "a mountain", tag: "resilience, courage and doing hard things", verb: "represents", color: "strong and steady" },
+    { name: "Ziggy", img: COMPANION_URLS.ziggy, symbol: "a paintbrush", tag: "imagination, play and self-expression", verb: "represents", color: "playful and creative" },
   ];
 
   return (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
-import { url as logoUrl } from "@/assets/brand/pointpals-logo-points.asset.json";
+import { LOGO_POINTS_URL } from "@/lib/image-urls";
+const logoUrl = LOGO_POINTS_URL;
 
 // "Add to Home Screen" banner (§2c). Appears — as a dismissible card above the
 // bottom nav, never a modal — once a user has opened the app 2+ times and the

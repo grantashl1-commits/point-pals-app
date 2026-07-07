@@ -2,8 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { BadgeCheck, Sparkles, Heart, Gift, ArrowRight } from "lucide-react";
 import { formatPrice, BILLING_CONFIG } from "@/lib/entitlements";
-import heroAsset from "@/assets/brand/pp-hero.asset.json";
-import { url as logoUrl } from "@/assets/brand/pointpals-logo-points.asset.json";
+import { HERO_IMAGE_URL, LOGO_POINTS_URL } from "@/lib/image-urls";
 import { HeroJarScene } from "@/components/HeroJarScene";
 import { WalkingMascots } from "@/components/WalkingMascots";
 import { HeroBackground } from "@/components/HeroBackground";
@@ -28,8 +27,8 @@ export const Route = createFileRoute("/welcome")({
           "Turn chores and good behaviour into shared family points, then celebrate the reward you chose together. Research-backed, NZ-made.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: heroAsset.url },
-      { name: "twitter:image", content: heroAsset.url },
+      { property: "og:image", content: HERO_IMAGE_URL },
+      { name: "twitter:image", content: HERO_IMAGE_URL },
     ],
   }),
 });
@@ -88,7 +87,7 @@ function WelcomePage() {
       <header className="relative z-30 max-w-6xl mx-auto px-6 pt-6 flex items-center justify-between">
         <Link to="/" className="flex items-center">
           <img
-            src={logoUrl}
+            src={LOGO_POINTS_URL}
             alt="PointPals — family chores & behaviour, made kind"
             className="h-20 sm:h-28 lg:h-32 w-auto select-none drop-shadow-[0_10px_20px_rgba(236,72,153,0.35)]"
             draggable={false}

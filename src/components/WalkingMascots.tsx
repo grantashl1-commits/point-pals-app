@@ -1,12 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import sunnyAsset from "@/assets/companions/sunny.png.asset.json";
-import pipAsset from "@/assets/companions/pip.png.asset.json";
-import brambleAsset from "@/assets/companions/bramble.png.asset.json";
-import ziggyAsset from "@/assets/companions/ziggy.png.asset.json";
-import ridgeAsset from "@/assets/companions/ridge.png.asset.json";
-import codaAsset from "@/assets/companions/coda.png.asset.json";
-import fernAsset from "@/assets/companions/fern.png.asset.json";
-import marlowAsset from "@/assets/companions/marlow.png.asset.json";
+import { COMPANION_URLS } from "@/lib/image-urls";
 import { companionTintKey, TINT_HEX } from "@/lib/companion-tints";
 
 /**
@@ -18,14 +11,14 @@ import { companionTintKey, TINT_HEX } from "@/lib/companion-tints";
 // Each companion has a marble tint key from the shared companion-tints map
 // so their point bubbles (and the marble that drops) share the same colour.
 const MASCOTS = [
-  { src: sunnyAsset.url, alt: "Sunny", tint: companionTintKey("sunny"), dur: "26s", delay: "0s", size: 156, bottom: "6%" },
-  { src: pipAsset.url, alt: "Pip", tint: companionTintKey("pip"), dur: "26s", delay: "-3.25s", size: 132, bottom: "4%" },
-  { src: brambleAsset.url, alt: "Bramble", tint: companionTintKey("bramble"), dur: "26s", delay: "-6.5s", size: 150, bottom: "5%" },
-  { src: ziggyAsset.url, alt: "Ziggy", tint: companionTintKey("ziggy"), dur: "26s", delay: "-9.75s", size: 138, bottom: "7%" },
-  { src: ridgeAsset.url, alt: "Ridge", tint: companionTintKey("ridge"), dur: "26s", delay: "-13s", size: 160, bottom: "4%" },
-  { src: codaAsset.url, alt: "Coda", tint: companionTintKey("coda"), dur: "26s", delay: "-16.25s", size: 134, bottom: "6%" },
-  { src: fernAsset.url, alt: "Fern", tint: companionTintKey("fern"), dur: "26s", delay: "-19.5s", size: 146, bottom: "5%" },
-  { src: marlowAsset.url, alt: "Marlow", tint: companionTintKey("marlow"), dur: "26s", delay: "-22.75s", size: 152, bottom: "7%" },
+  { src: COMPANION_URLS.sunny, alt: "Sunny", tint: companionTintKey("sunny"), dur: "26s", delay: "0s", size: 156, bottom: "6%" },
+  { src: COMPANION_URLS.pip, alt: "Pip", tint: companionTintKey("pip"), dur: "26s", delay: "-3.25s", size: 132, bottom: "4%" },
+  { src: COMPANION_URLS.bramble, alt: "Bramble", tint: companionTintKey("bramble"), dur: "26s", delay: "-6.5s", size: 150, bottom: "5%" },
+  { src: COMPANION_URLS.ziggy, alt: "Ziggy", tint: companionTintKey("ziggy"), dur: "26s", delay: "-9.75s", size: 138, bottom: "7%" },
+  { src: COMPANION_URLS.ridge, alt: "Ridge", tint: companionTintKey("ridge"), dur: "26s", delay: "-13s", size: 160, bottom: "4%" },
+  { src: COMPANION_URLS.coda, alt: "Coda", tint: companionTintKey("coda"), dur: "26s", delay: "-16.25s", size: 134, bottom: "6%" },
+  { src: COMPANION_URLS.fern, alt: "Fern", tint: companionTintKey("fern"), dur: "26s", delay: "-19.5s", size: 146, bottom: "5%" },
+  { src: COMPANION_URLS.marlow, alt: "Marlow", tint: companionTintKey("marlow"), dur: "26s", delay: "-22.75s", size: 152, bottom: "7%" },
 ];
 
 const TICK_MS = 1800; // one point-bubble every 1.8s (slow, calm pace)

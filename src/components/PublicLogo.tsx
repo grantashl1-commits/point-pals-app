@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { url as logoUrl } from "@/assets/brand/pointpals-logo-points.asset.json";
+import { LOGO_POINTS_URL } from "@/lib/image-urls";
+const logoUrl = LOGO_POINTS_URL;
 
 export function PublicLogo({ fixed = false }: { fixed?: boolean }) {
   const wrapperCls = fixed

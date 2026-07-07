@@ -4,7 +4,8 @@ import { Home, Star, Camera, Settings, ChevronLeft } from "lucide-react";
 import { useApp } from "@/lib/app-store";
 import { useHouseholdRole } from "@/lib/use-household-role";
 import { useBackNav, isRootTab, pageTitle } from "@/lib/navigation";
-import { url as logoUrl } from "@/assets/brand/pointpals-logo-points.asset.json";
+import { LOGO_POINTS_URL } from "@/lib/image-urls";
+const logoUrl = LOGO_POINTS_URL;
 
 // Small inline jar-of-marbles glyph used for the Rewards tab — lucide has no
 // jar, and a jar reads more truthfully than a gift box for this app.
