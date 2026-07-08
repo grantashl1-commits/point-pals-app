@@ -226,7 +226,7 @@ export function AwardModal({
         )}
 
         {/* tile grid */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-16">
           {empty ? (
             <div className="text-center py-10">
               <PlusCircle className="mx-auto h-10 w-10 text-muted-foreground/60" />
