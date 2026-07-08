@@ -165,6 +165,8 @@ function SettingsPage() {
     { id: string; code: string; role: string; expires_at: string; used_at: string | null }[]
   >([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [extFamilyNeedsWork, setExtFamilyNeedsWork] = useState(false);
+  const [extFamilyNeedsWorkLoading, setExtFamilyNeedsWorkLoading] = useState(false);
 
   async function loadMembersAndInvites() {
     if (!isLive) return;
@@ -186,6 +188,21 @@ function SettingsPage() {
     setInvites(inv ?? []);
     setMembersLoading(false);
   }
+
+  // Load extended-family permissions from household_settings table.
+  useEffect(() => {
+    if (!isLive || !household.id) return;
+    setExtFamilyNeedsWorkLoading(true);
+    void supabase
+      .from("household_settings")
+      .select("ext_family_can_award_needs_work")
+      .eq("household_id", household.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setExtFamilyNeedsWork(data.ext_family_can_award_needs_work);
+      })
+      .finally(() => setExtFamilyNeedsWorkLoading(false));
+  }, [isLive, household.id]);
 
   // A name suggested by the auth provider (Google populates full_name / name;
   // fall back to the email's local part). Used to prefill the display-name
@@ -409,6 +426,30 @@ function SettingsPage() {
                 })}
               </ul>
             )}
+          </div>
+        )}
+
+        {/* Needs‑Work toggle — only admins can change it */}
+        {isLive && isAdmin && (
+          <div className="card-soft p-1">
+            <ToggleRow
+              icon={<BarChart3 className="h-4 w-4" />}
+              label="Allow extended family to log needs-work"
+              desc="When on, viewers can award &apos;Needs work&apos; taps (‑1 point). Off by default."
+              checked={extFamilyNeedsWork}
+              onChange={async (v) => {
+                setExtFamilyNeedsWork(v);
+                await supabase.from("household_settings").upsert(
+                  {
+                    household_id: household.id,
+                    ext_family_can_award_needs_work: v,
+                    updated_at: new Date().toISOString(),
+                  },
+                  { onConflict: "household_id" },
+                );
+                trackParent("ext_family_needs_work_toggle", { on: v });
+              }}
+            />
           </div>
         )}
 
