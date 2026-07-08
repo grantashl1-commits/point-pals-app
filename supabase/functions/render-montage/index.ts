@@ -122,6 +122,7 @@ type PostRow = {
   media_type: "image" | "video" | null;
   media_paths: MediaItem[] | null;
   created_at: string;
+  caption: string | null;
 };
 
 function postMedia(p: PostRow): MediaItem[] {
@@ -133,7 +134,9 @@ function postMedia(p: PostRow): MediaItem[] {
 }
 
 function formatNzDate(iso: string): string {
+  if (!iso) return "";
   const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+  if (isNaN(d.getTime())) return "";
   return d.toLocaleDateString("en-NZ", { month: "long", day: "numeric", year: "numeric", timeZone: "Pacific/Auckland" });
 }
 
@@ -208,35 +211,71 @@ async function handleStart(householdId: string, userId: string): Promise<Respons
     return json({ ok: false, error: "season_limit_reached", limit: cap }, 429);
   }
 
+  // Fallback dates: if the season hasn't been explicitly set, use the
+  // oldest memory post as the start and today as the end.
+  const seasonStart = hh.memory_cycle_started_at ?? "2025-01-01";
+  const seasonEnd = hh.memory_cycle_ends_at ?? new Date().toISOString();
+
   // ── Gather the season, oldest first ─────────────────────────────────
   const { data: posts, error: postErr } = await admin
     .from("memory_posts")
-    .select("id, storage_path, media_type, media_paths, created_at")
+    .select("id, storage_path, media_type, media_paths, caption, created_at")
     .eq("household_id", householdId)
-    .gte("created_at", hh.memory_cycle_started_at)
+    .gte("created_at", seasonStart)
     .order("created_at", { ascending: true });
   if (postErr) return json({ ok: false, error: postErr.message }, 500);
 
-  const items: MediaItem[] = (posts ?? []).flatMap((p) => postMedia(p as PostRow)).slice(0, MAX_CLIPS);
+  // Build items list from posts, keeping the caption alongside each media item.
+  type ItemWithCaption = { path: string; kind: "image" | "video"; caption?: string };
+  const items: ItemWithCaption[] = [];
+  for (const p of posts ?? []) {
+    const media = postMedia(p as PostRow);
+    for (const m of media) {
+      items.push({ path: m.path, kind: m.kind, caption: (p as any).caption ?? undefined });
+      if (items.length >= MAX_CLIPS) break;
+    }
+    if (items.length >= MAX_CLIPS) break;
+  }
   if (items.length === 0) {
     return json({ ok: false, error: "no_memories" }, 400);
   }
 
   // ── Build the Shotstack edit: title card, then one clip per item.
   // Sources are 24h signed URLs — the render service never sees the bucket.
-  const clips: Record<string, unknown>[] = [];
+  // Track 0 = video/images, Track 1 = caption overlays.
+  const videoClips: Record<string, unknown>[] = [];
+  const captionClips: Record<string, unknown>[] = [];
   let cursor = 0;
 
-  clips.push({
+  // Fallback for the title: if dates are null, show a generic label.
+  const seasonStartLabel = hh.memory_cycle_started_at
+    ? formatNzDate(hh.memory_cycle_started_at)
+    : "Earliest memories";
+  const seasonEndLabel = hh.memory_cycle_ends_at
+    ? formatNzDate(hh.memory_cycle_ends_at)
+    : "Present";
+
+  videoClips.push({
     asset: {
       type: "title",
-      text: `The ${hh.name} family\n${formatNzDate(hh.memory_cycle_started_at)} – ${formatNzDate(hh.memory_cycle_ends_at)}`,
+      text: `The ${hh.name} family\n${seasonStartLabel} – ${seasonEndLabel}`,
       style: "chunk",
       size: "small",
     },
     start: cursor,
     length: TITLE_SECONDS,
     transition: { in: "fade", out: "fade" },
+  });
+  // Empty caption clip to keep tracks aligned
+  captionClips.push({
+    asset: {
+      type: "title",
+      text: "",
+      style: "chunk",
+      size: "small",
+    },
+    start: cursor,
+    length: TITLE_SECONDS,
   });
   cursor += TITLE_SECONDS;
 
@@ -246,33 +285,55 @@ async function handleStart(householdId: string, userId: string): Promise<Respons
       .createSignedUrl(item.path, SIGNED_ASSET_TTL);
     if (signErr || !signed?.signedUrl) continue;
 
+    const dur = item.kind === "video" ? VIDEO_SECONDS : IMAGE_SECONDS;
+
     if (item.kind === "video") {
-      clips.push({
+      videoClips.push({
         asset: { type: "video", src: signed.signedUrl, trim: 0, volume: 1 },
         start: cursor,
-        length: VIDEO_SECONDS,
+        length: dur,
         transition: { in: "fade", out: "fade" },
       });
-      cursor += VIDEO_SECONDS;
     } else {
-      clips.push({
+      videoClips.push({
         asset: { type: "image", src: signed.signedUrl },
         start: cursor,
-        length: IMAGE_SECONDS,
+        length: dur,
         effect: "zoomIn",
         transition: { in: "fade", out: "fade" },
       });
-      cursor += IMAGE_SECONDS;
     }
+
+    // Caption overlay: display the caption text at the bottom of the frame.
+    // Truncate to 120 chars, flatten newlines for single-line display.
+    const captionText = item.caption
+      ? item.caption.replace(/\n/g, " ").substring(0, 120)
+      : "";
+    captionClips.push({
+      asset: {
+        type: "title",
+        text: captionText,
+        style: "chunk",
+        size: "xx-small",
+      },
+      start: cursor,
+      length: dur,
+      transition: { in: "fade", out: "fade" },
+    });
+
+    cursor += dur;
   }
 
-  if (clips.length <= 1) {
+  if (videoClips.length <= 1) {
     return json({ ok: false, error: "could not sign any media" }, 500);
   }
 
   const timeline: Record<string, unknown> = {
     background: "#000000",
-    tracks: [{ clips }],
+    tracks: [
+      { clips: videoClips },
+      { clips: captionClips },
+    ],
   };
   const soundtrack = Deno.env.get("SHOTSTACK_SOUNDTRACK_URL");
   if (soundtrack) {

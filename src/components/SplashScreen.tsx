@@ -1,5 +1,7 @@
-// Full-screen splash shown while the app boots. Rotating marbles + logo.
+// Full-screen splash shown while the app boots. Ziggy + logo + rotating marbles.
 // Lives outside AppShell so it renders before hydration completes.
+
+import { COMPANION_URLS } from "@/lib/image-urls";
 
 const MARBLES = [
   { color: "#8FC7EA", label: "sky", delay: 0 },
@@ -27,14 +29,13 @@ export function SplashScreen() {
         }}
       />
 
-      {/* Logo */}
-      <div className="relative z-10 mb-6">
+      {/* Logo — Ziggy mascot + wordmark */}
+      <div className="relative z-10 mb-6 flex flex-col items-center">
+        {/* Ziggy: fits inside the frame, not squashed */}
         <img
-          src="/favicon.png"
+          src={COMPANION_URLS.ziggy}
           alt="PointPals"
-          width={80}
-          height={80}
-          className="h-20 w-20 mx-auto mb-4 select-none"
+          className="h-24 w-auto max-w-[120px] mx-auto mb-3 select-none object-contain"
           draggable={false}
         />
         <h1 className="font-display text-3xl font-bold text-center tracking-tight">
