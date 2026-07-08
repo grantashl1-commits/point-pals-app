@@ -188,33 +188,17 @@ const { data, error } = await (supabase.from("user_icons") as any)
                   <button
                     type="button"
                     key={u.id}
-                    onClick={() => onSelect(url)}
+                    onClick={() => { if (!brokenIcons.has(u.id)) onSelect(url); }}
                     aria-pressed={on}
                     title={u.label || "Custom icon"}
-                    className={`tap aspect-square rounded-xl bg-card flex items-center justify-center transition ${
+                    className={`tap aspect-square rounded-xl bg-card flex items-center justify-center transition relative group ${
                       on
                         ? "ring-2 ring-foreground scale-95"
                         : "hover:scale-105 border border-border/60"
-                    }`}
+                    } ${brokenIcons.has(u.id) ? "bg-destructive/10" : ""}`}
                   >
                     {brokenIcons.has(u.id) ? (
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!window.confirm(`Remove "${u.label || "Custom icon"}"? It can\'t be loaded.`)) return;
-                          try {
-                            const { supabase } = await import("@/integrations/supabase/client");
-                            // @ts-expect-error user_icons not in types
-                            await (supabase.from("user_icons") as any).update({ deleted_at: new Date().toISOString() }).eq("id", u.id);
-                            setUserIcons((prev) => prev.filter((x) => x.id !== u.id));
-                          } catch {}
-                        }}
-                        className="w-full h-full flex items-center justify-center"
-                        title="Broken icon — click to remove"
-                      >
-                        <Trash2 className="w-6 h-6 text-destructive" />
-                      </button>
+                      <Trash2 className="w-6 h-6 text-destructive" />
                     ) : (
                       <img
                         src={url}
@@ -224,6 +208,23 @@ const { data, error } = await (supabase.from("user_icons") as any)
                         onError={() => setBrokenIcons((prev) => new Set(prev).add(u.id))}
                       />
                     )}
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!window.confirm(`Remove "${u.label || "Custom icon"}"?`)) return;
+                        try {
+                          const { supabase } = await import("@/integrations/supabase/client");
+                          // @ts-expect-error user_icons not in types
+                          await (supabase.from("user_icons") as any).update({ deleted_at: new Date().toISOString() }).eq("id", u.id);
+                          setUserIcons((prev) => prev.filter((x) => x.id !== u.id));
+                        } catch {}
+                      }}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-background shadow-sm border border-border/60 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                      title="Delete icon"
+                    >
+                      <Trash2 className="w-3 h-3 text-destructive" />
+                    </button>
                   </button>
                 );
               })}
@@ -280,7 +281,7 @@ const { data, error } = await (supabase.from("user_icons") as any)
                     e.stopPropagation();
                     toggleHidden(k);
                   }}
-                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-background shadow-sm border border-border/60 flex items-center justify-center opacity-0 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-background shadow-sm border border-border/60 flex items-center justify-center opacity-30 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                   title={hidden ? "Show icon" : "Hide icon"}
                 >
                   {hidden ? (
