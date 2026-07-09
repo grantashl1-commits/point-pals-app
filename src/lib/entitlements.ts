@@ -57,14 +57,22 @@ export const BILLING_CONFIG: {
 // Feature → does it require an active entitlement? Flip these to reshape the
 // free/paid boundary (e.g. for a freemium split) without touching screens.
 export type Feature =
-  "icon_generation" | "unlimited_kids" | "advanced_recap" | "leaderboard" | "data_export";
+  | "icon_generation"
+  | "award_points"
+  | "unlimited_kids"
+  | "advanced_recap"
+  | "leaderboard"
+  | "data_export";
 
 const FEATURES: Record<Feature, { premium: boolean; freeTierLimit?: number }> = {
-  icon_generation: { premium: true },
-  unlimited_kids: { premium: true, freeTierLimit: 2 },
-  advanced_recap: { premium: true },
+  // Free-tier features — available after trial too.
+  icon_generation: { premium: false, freeTierLimit: 10 },
   leaderboard: { premium: false },
   data_export: { premium: false },
+  // Premium features — require an active subscription.
+  award_points: { premium: true },
+  unlimited_kids: { premium: true, freeTierLimit: 2 },
+  advanced_recap: { premium: true },
 };
 
 // A household is "entitled" while trialing or active.

@@ -25,16 +25,14 @@ function AuthLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   // Route guards (§5): redirect based on account state.
-  // We wait for hydration so the guards don't fire before bootLive loads
-  // the household data.
+  // Free users are no longer redirected — they can browse read-only while
+  // award-points, marble-jar and rewards are gated behind the subscription.
   useEffect(() => {
     if (!hydrated) return;
     if (needsHousehold) {
       navigate({ to: "/welcome-back" });
-    } else if (household.subscriptionStatus === "free") {
-      navigate({ to: "/settings" });
     }
-  }, [needsHousehold, household.subscriptionStatus, hydrated, navigate]);
+  }, [needsHousehold, hydrated, navigate]);
 
   // Allow household-requiring routes (/welcome-back, /join, /settings) to
   // render even when needsHousehold is true. Only block if we're on a route
@@ -51,9 +49,6 @@ function AuthLayout() {
     return <SplashScreen />;
   }
 
-  if (household.subscriptionStatus === "free" && pathname !== "/settings") {
-    return <SplashScreen />;
-  }
-
+  // Free users see all routes (features are gated per-component, not per-route).
   return <Outlet />;
 }

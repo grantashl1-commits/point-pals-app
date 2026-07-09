@@ -74,10 +74,16 @@ function SignUpPage() {
       setInfo("Check your email to confirm your account, then log in.");
       return;
     }
+    // Capture Etsy / campaign source from URL param (?source=etsy)
+    const sourceParam =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("source") || undefined
+        : undefined;
+
     // Create the household — trigger adds the current user as admin member.
     const { error: hhErr } = await supabase
       .from("households")
-      .insert({ name: name || "My Family" });
+      .insert({ name: name || "My Family", ...(sourceParam ? { attribution_source: sourceParam } : {}) });
     setBusy(false);
     if (hhErr) {
       setErr(hhErr.message);
