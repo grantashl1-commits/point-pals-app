@@ -114,25 +114,24 @@ function WelcomePage() {
       <section className="relative max-w-6xl mx-auto px-6 pt-8 pb-12">
         <HeroBackground />
 
-        {/* Marble jar */}
-        <div className="relative z-10 max-w-md mx-auto">
-          <HeroJarScene
-            value={value}
-            target={TARGET}
-            celebrating={celebrating}
-            pendingDrops={pendingDrops}
-            onFull={handleFull}
-          />
-        </div>
+        <div className="lg:grid lg:grid-cols-2 lg:gap-10 lg:items-center">
+          {/* Jar + mascots — right on desktop, first on mobile */}
+          <div className="lg:order-2 relative z-10 max-w-md mx-auto lg:max-w-none lg:mx-0">
+            <HeroJarScene
+              value={value}
+              target={TARGET}
+              celebrating={celebrating}
+              pendingDrops={pendingDrops}
+              onFull={handleFull}
+            />
+            <div className="relative -mt-10 sm:-mt-16">
+              <WalkingMascots paused={celebrating} onPointsLand={addPoints} />
+            </div>
+          </div>
 
-        {/* Full-width walking mascots + floating points — walking past the jar */}
-        <div className="relative z-20 -mt-16 mb-4">
-          <WalkingMascots paused={celebrating} onPointsLand={addPoints} />
-        </div>
-
-        {/* Text block — moved below mascots so mascots walk past jar above text */}
-        <div className="relative z-10 max-w-3xl mx-auto">
-          <div className="rounded-3xl bg-white/70 backdrop-blur-md p-6 sm:p-8 shadow-[0_20px_60px_-20px_rgba(236,72,153,0.35)] border border-white/60">
+          {/* Text block — left on desktop, below on mobile */}
+          <div className="lg:order-1 relative z-10 max-w-3xl mx-auto lg:max-w-none lg:mx-0">
+            <div className="rounded-3xl bg-white/70 backdrop-blur-md p-6 sm:p-8 shadow-[0_20px_60px_-20px_rgba(236,72,153,0.35)] border border-white/60">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-butter/60 border border-butter px-3 py-1 text-xs font-semibold uppercase tracking-wider text-foreground/70">
               <BadgeCheck className="h-3.5 w-3.5" /> Research-backed &amp; NZ-made
             </div>
@@ -161,6 +160,8 @@ function WelcomePage() {
             </p>
           </div>
         </div>
+
+      </div>
       </section>
 
       {/* how it works */}
