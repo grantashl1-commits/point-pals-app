@@ -80,6 +80,25 @@ export function primeAudio() {
   }
 }
 
+// G10 — Prime audio on the first user interaction so remote awards (real-time
+// INSERTs without a local gesture) can play sound. Once the AudioContext is
+// running, it stays live for the page lifetime. Called once at module import.
+let primerAttached = false;
+export function attachAudioPrimer() {
+  if (primerAttached || typeof document === "undefined") return;
+  primerAttached = true;
+  document.addEventListener(
+    "pointerdown",
+    () => {
+      const ac = audio();
+      if (ac && ac.state !== "running") {
+        ac.resume().catch(() => {/* not in a gesture yet */});
+      }
+    },
+    { once: true, passive: true },
+  );
+}
+
 // Auto-prime on first user interaction so remote awards can play sound.
 attachAudioPrimer();
 
@@ -157,25 +176,6 @@ export function triggerAwardFeedback(kind: "positive" | "needs-work") {
 // Exposed for tests/diagnostics: current audio state without side effects.
 export function audioState(): AudioContextState | "unavailable" {
   return ctx?.state ?? "unavailable";
-}
-
-// G10 — Prime audio on the first user interaction so remote awards (real-time
-// INSERTs without a local gesture) can play sound. Once the AudioContext is
-// running, it stays live for the page lifetime. Called once at module import.
-let primerAttached = false;
-export function attachAudioPrimer() {
-  if (primerAttached || typeof document === "undefined") return;
-  primerAttached = true;
-  document.addEventListener(
-    "pointerdown",
-    () => {
-      const ac = audio();
-      if (ac && ac.state !== "running") {
-        ac.resume().catch(() => {/* not in a gesture yet */});
-      }
-    },
-    { once: true, passive: true },
-  );
 }
 
 // ---------------------------------------------------------------------------
