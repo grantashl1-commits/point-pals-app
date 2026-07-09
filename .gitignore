@@ -36,3 +36,7 @@ _up*.mjs
 *.njsproj
 *.sln
 *.sw?
+
+# Capacitor assets config (local paths differ per developer)
+/capacitor-web/
+/capacitor-assets.json

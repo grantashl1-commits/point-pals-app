@@ -1,5 +1,5 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "point-pals-app",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -10,9 +10,20 @@
     "preview": "vite preview",
     "start": "node --import ./dist/server/instrument.server.mjs .output/server/index.mjs",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "cap": "npx cap",
+    "cap:copy": "npx cap copy",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:android": "npx cap run android --host",
+    "cap:ios": "npx cap run ios --host"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@fontsource-variable/nunito-sans": "^5.2.7",
     "@fontsource/zain": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",
@@ -72,6 +83,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.32.0",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
