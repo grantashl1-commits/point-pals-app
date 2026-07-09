@@ -80,7 +80,7 @@ function WelcomeBackPage() {
     }
     // Trigger already added us as admin — reload the app-store from the server.
     // Fire welcome email (idempotent server-side).
-    sendTrialWelcome().catch(() => {});
+    sendTrialWelcome().catch((e) => console.error("[welcome-back] welcome email failed:", e));
     await refreshFromServer();
     setBusy(false);
     navigate({ to: "/onboarding" });
