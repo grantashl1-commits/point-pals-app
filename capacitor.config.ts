@@ -11,7 +11,7 @@ const config: CapacitorConfig = {
   // ────────────────────────────────────────────────────────────────────────────
   server: {
     // vite dev server URL (change IP if testing on another device on the LAN)
-    url: 'http://localhost:8080',
+    url: 'http://localhost:8081',
     cleartext: true,
   },
 
