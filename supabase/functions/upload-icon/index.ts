@@ -11,7 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, json } from "../_shared/cors.ts";
 // @ts-ignore — pngjs loaded via npm: specifier for Deno compat
-import pngjs from "npm:pngjs@7.4.0";
+import pngjs from "npm:pngjs@7.0.0";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
