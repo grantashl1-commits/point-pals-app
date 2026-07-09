@@ -938,6 +938,20 @@ function AiIconPanel({
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<{ used: number; cap: number; remaining: number } | null>(null);
+
+  // Load remaining icon generations on mount
+  useEffect(() => {
+    if (!household?.id) return;
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke("get-icon-usage", {
+          body: { householdId: household.id },
+        });
+        if (data?.ok) setUsage(data);
+      } catch {}
+    })();
+  }, [household?.id]);
 
   const generate = async () => {
     if (!prompt.trim()) return;
@@ -972,6 +986,13 @@ function AiIconPanel({
       <p className="text-xs text-muted-foreground">
         Describe the icon you want — e.g. "a dog brushing its teeth"
       </p>
+      {usage && (
+        <p className="text-xs text-muted-foreground/70">
+          {usage.used >= usage.cap
+            ? "Monthly limit reached — wait for next month to generate more."
+            : `${usage.used} of ${usage.cap} icons used this month (${usage.remaining} remaining)`}
+        </p>
+      )}
       <div className="flex gap-2">
         <input
           value={prompt}
@@ -982,7 +1003,7 @@ function AiIconPanel({
         />
         <button
           onClick={generate}
-          disabled={generating || !prompt.trim()}
+          disabled={generating || !prompt.trim() || (usage?.used ?? 0) >= (usage?.cap ?? 10)}
           className="tap rounded-full bg-foreground text-background px-4 py-2 text-sm font-semibold disabled:opacity-50 flex items-center gap-1.5"
         >
           {generating ? <span className="animate-spin">⟳</span> : <Wand2 className="w-3.5 h-3.5" />}
@@ -1034,6 +1055,20 @@ function UploadIconPanel({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [usage, setUsage] = useState<{ used: number; cap: number; remaining: number } | null>(null);
+
+  // Load remaining icon generations on mount
+  useEffect(() => {
+    if (!household?.id) return;
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke("get-icon-usage", {
+          body: { householdId: household.id },
+        });
+        if (data?.ok) setUsage(data);
+      } catch {}
+    })();
+  }, [household?.id]);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1097,6 +1132,13 @@ function UploadIconPanel({
       <p className="text-xs text-muted-foreground">
         Pick a photo of anything — we’ll strip the background and turn it into an icon.
       </p>
+      {usage && (
+        <p className="text-xs text-muted-foreground/70">
+          {usage.used >= usage.cap
+            ? "Monthly limit reached — wait for next month to upload more."
+            : `${usage.used} of ${usage.cap} icons used this month (${usage.remaining} remaining)`}
+        </p>
+      )}
 
       {/* Hidden file input */}
       <input
