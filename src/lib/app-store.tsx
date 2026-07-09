@@ -30,6 +30,8 @@ import {
   mapKid,
   mapSkill,
 } from "./supabase-sync";
+import { subscribeMemoriesRealtime } from "./memories";
+import { triggerAwardFeedback } from "./feedback";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // Client-side app state for the PointPals prototype.
@@ -397,6 +399,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const oldRow = payload.old as { id?: string } | null;
           if (payload.eventType === "INSERT" && newRow) {
             if (echoIds.current.has(newRow.id)) return;
+            // Remote award — play sound + haptics so the jar feels alive
+            triggerAwardFeedback(
+              (newRow as { points?: number }).points != null && newRow.points >= 0
+                ? "positive"
+                : "needs-work",
+            );
             setState((s) => ({
               ...s,
               history: [mapEvent(newRow), ...s.history].slice(0, 200),
@@ -479,6 +487,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [mode]);
+
+  // Separate channel for memory-posts / likes / comments — same lifecycle.
+  useEffect(() => {
+    if (mode !== "live" || !householdIdRef.current) return;
+    return subscribeMemoriesRealtime(householdIdRef.current);
   }, [mode]);
 
   const { household, kids, chores, skills, history } = state;

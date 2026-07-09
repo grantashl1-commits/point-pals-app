@@ -5,6 +5,7 @@ import { useSettings, setSetting } from "@/lib/settings";
 import { Paywall } from "@/components/Paywall";
 import { trackParent } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
+import { primeAudio } from "@/lib/feedback";
 import { PASTEL_HEX, type Kid } from "@/lib/mock-data";
 import { useHouseholdRole, type HouseholdRole } from "@/lib/use-household-role";
 import { ToggleRow } from "@/components/jar-settings";
@@ -611,7 +612,10 @@ function SettingsPage() {
             label="Sound effects"
             desc="Chimes and the marble clink. Respects your device's silent switch."
             checked={settings.sound}
-            onChange={(v) => setSetting("sound", v)}
+            onChange={(v) => {
+              setSetting("sound", v);
+              if (v) primeAudio();
+            }}
           />
           <ToggleRow
             icon={<Vibrate className="h-4 w-4" />}

@@ -224,6 +224,173 @@ let remoteLoaded = false;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
+// Echo de-dup for memory_posts — IDs we just wrote so realtime doesn't
+// re-apply them. Same approach as echoIds in app-store.tsx.
+const echoMemoryIds = new Set<string>();
+function addEchoId(id: string) {
+  echoMemoryIds.add(id);
+  setTimeout(() => echoMemoryIds.delete(id), 5000);
+}
+
+// Realtime feedback invalidation — bumped per post when a like or comment
+// arrives from another device. Components can subscribe to the version map
+// via onFeedbackChanged so they know to re-fetch.
+const feedbackVersion = new Map<string, number>();
+const feedbackListeners = new Map<string, Set<() => void>>();
+function bumpFeedbackVersion(postId: string) {
+  feedbackVersion.set(postId, (feedbackVersion.get(postId) ?? 0) + 1);
+  feedbackListeners.get(postId)?.forEach((l) => l());
+}
+
+export function getFeedbackVersion(postId: string): number {
+  return feedbackVersion.get(postId) ?? 0;
+}
+
+export function subscribeFeedbackVersion(postId: string, cb: () => void): () => void {
+  if (!feedbackListeners.has(postId)) feedbackListeners.set(postId, new Set());
+  feedbackListeners.get(postId)!.add(cb);
+  return () => {
+    feedbackListeners.get(postId)?.delete(cb);
+  };
+}
+
+// Realtime channel handle — exported so app-store can tear it down on logout.
+let realtimeChannel: ReturnType<typeof db.channel> | null = null;
+
+/** Start listening for INSERT/UPDATE/DELETE on memory_posts, memory_likes,
+ *  memory_comments. Call once when the shell goes live. */
+export function subscribeMemoriesRealtime(householdId: string): () => void {
+  if (realtimeChannel) return () => {}; // already subscribed
+  realtimeChannel = db.channel(`memories:${householdId}`);
+
+  // memory_posts — merge into the wall
+  realtimeChannel
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "memory_posts",
+        filter: `household_id=eq.${householdId}`,
+      },
+      async (payload) => {
+        if (payload.eventType === "DELETE") {
+          const removed = (payload.old as { id?: string })?.id;
+          if (removed && memories.some((m) => m.id === removed)) {
+            memories = memories.filter((m) => m.id !== removed);
+            emit();
+          }
+          return;
+        }
+        // De-dup our own writes
+        const newId = (payload.new as { id?: string })?.id;
+        if (newId && echoMemoryIds.has(newId)) {
+          echoMemoryIds.delete(newId);
+          return;
+        }
+        // INSERT or UPDATE — fetch the full row with signed URLs
+        const row = payload.new as {
+          id: string;
+          storage_path: string | null;
+          media_type: "image" | "video" | null;
+          media_paths: MemoryMediaInput[] | null;
+          caption: string | null;
+          audio_path: string | null;
+          created_at: string;
+        };
+        try {
+          const list: MemoryMediaInput[] =
+            Array.isArray(row.media_paths) && row.media_paths.length > 0
+              ? row.media_paths
+              : row.storage_path
+                ? [{ path: row.storage_path, kind: row.media_type ?? "image" }]
+                : [];
+          const media: MemoryMedia[] = await Promise.all(
+            list.map(async (item) => ({
+              url: await signedUrl(item.path).catch(() => ""),
+              kind: item.kind,
+              path: item.path,
+            })),
+          );
+          const first = media[0];
+          // Fetch kid tags for this post
+          let kidLinks: { kid_id: string }[] | null = null;
+          try {
+            const res = await db
+              .from("memory_post_kids")
+              .select("kid_id")
+              .eq("post_id", row.id);
+            kidLinks = res.data as { kid_id: string }[] | null;
+          } catch {}
+          const kidIds: string[] = ((kidLinks ?? []) as { kid_id: string }[]).map(
+            (k) => k.kid_id,
+          );
+          const memory: Memory = {
+            id: row.id,
+            url: first?.url ?? "",
+            caption: row.caption ?? "",
+            kidIds,
+            createdAt: new Date(row.created_at).getTime(),
+            remote: true,
+            kind: first?.kind,
+            storagePath: first?.path,
+            media,
+            audioPath: row.audio_path ?? undefined,
+            audioUrl: row.audio_path
+              ? await signedUrl(row.audio_path).catch(() => undefined)
+              : undefined,
+          };
+          memories = sortWall(
+            memories.some((m) => m.id === memory.id)
+              ? memories.map((m) => (m.id === memory.id ? memory : m))
+              : [memory, ...memories],
+          );
+          emit();
+        } catch {
+          /* best-effort */
+        }
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "memory_likes" },
+      (payload) => {
+        if (payload.eventType === "INSERT") {
+          const row = payload.new as { post_id: string };
+          bumpFeedbackVersion(row.post_id);
+          emit();
+        } else if (payload.eventType === "DELETE") {
+          const row = payload.old as { post_id: string };
+          bumpFeedbackVersion(row.post_id);
+          emit();
+        }
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "memory_comments" },
+      (payload) => {
+        if (payload.eventType === "INSERT") {
+          const row = payload.new as { post_id: string };
+          bumpFeedbackVersion(row.post_id);
+          emit();
+        } else if (payload.eventType === "DELETE") {
+          const row = payload.old as { post_id: string };
+          bumpFeedbackVersion(row.post_id);
+          emit();
+        }
+      },
+    )
+    .subscribe();
+
+  return () => {
+    if (realtimeChannel) {
+      db.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+  };
+}
+
 function sortWall(list: Memory[]): Memory[] {
   return [...list].sort((a, b) => b.createdAt - a.createdAt);
 }
@@ -429,10 +596,12 @@ export async function addMemory(
   }
   memories = sortWall([memory, ...memories]);
   emit();
+  addEchoId(memory.id);
   return memory;
 }
 
 export async function removeMemory(id: string): Promise<void> {
+  addEchoId(id);
   const target = memories.find((m) => m.id === id);
   memories = memories.filter((m) => m.id !== id);
   emit();

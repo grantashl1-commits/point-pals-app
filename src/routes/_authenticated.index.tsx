@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useApp, type AwardBatch } from "@/lib/app-store";
 import { useHouseholdRole } from "@/lib/use-household-role";
-import { primeAudio, playChime, haptic } from "@/lib/feedback";
+import { primeAudio, triggerAwardFeedback, haptic } from "@/lib/feedback";
 import { KidBadge } from "@/components/KidBadge";
 import { AwardModal } from "@/components/AwardModal";
 import { FamilyJarCard } from "@/components/FamilyJarCard";
@@ -77,9 +77,10 @@ function HomePage() {
     // primeAudio() already unlocked the AudioContext on the earlier avatar tap,
     // so deferring the chime/award out of the gesture is safe on iOS.
     setActiveKidId(null);
-    haptic(positiveAward ? "success" : "medium");
+    triggerAwardFeedback(positiveAward ? "positive" : "needs-work");
+    // Fire-and-forget points write — feedback has already been called
+    // synchronously inside the gesture so the AudioContext is live.
     window.setTimeout(() => {
-      playChime(positiveAward ? "positive" : "needs-work");
       const batch = awardPoints([kidId], item);
       const text = `${item.points > 0 ? "+" : ""}${item.points} ${item.name}`;
       setToast({ batch, text });

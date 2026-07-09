@@ -104,7 +104,20 @@ function WelcomePage() {
       {/* hero */}
       <section className="relative max-w-6xl mx-auto px-6 pt-8 pb-12 grid lg:grid-cols-2 gap-8 items-center">
         <HeroBackground />
-        <div className="relative z-10">
+
+        {/* Marble jar first in DOM so it stacks above text on mobile */}
+        <div className="relative z-10 lg:order-2">
+          <HeroJarScene
+            value={value}
+            target={TARGET}
+            celebrating={celebrating}
+            pendingDrops={pendingDrops}
+            onFull={handleFull}
+          />
+        </div>
+
+        {/* Text block second in DOM, re-ordered left on desktop */}
+        <div className="relative z-10 lg:order-1">
           <div className="rounded-3xl bg-white/70 backdrop-blur-md p-6 sm:p-8 shadow-[0_20px_60px_-20px_rgba(236,72,153,0.35)] border border-white/60">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-butter/60 border border-butter px-3 py-1 text-xs font-semibold uppercase tracking-wider text-foreground/70">
               <BadgeCheck className="h-3.5 w-3.5" /> Research-backed &amp; NZ-made
@@ -133,17 +146,6 @@ function WelcomePage() {
               Free for {BILLING_CONFIG.trialDays} days, then {formatPrice()}. Cancel anytime.
             </p>
           </div>
-        </div>
-
-        {/* Massive marble jar centrepiece */}
-        <div className="relative z-10">
-          <HeroJarScene
-            value={value}
-            target={TARGET}
-            celebrating={celebrating}
-            pendingDrops={pendingDrops}
-            onFull={handleFull}
-          />
         </div>
 
         {/* Full-width walking mascots + floating points */}

@@ -182,19 +182,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto">
-          <Link
-            to="/settings"
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition ${
-              pathname.startsWith("/settings")
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </Link>
-        </div>
+        {role !== "viewer" && (
+          <div className="mt-auto">
+            <Link
+              to="/settings"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition ${
+                pathname.startsWith("/settings")
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
+            </Link>
+          </div>
+        )}
       </aside>
 
       <header className="max-w-4xl mx-auto px-5 pt-6 pb-4">
@@ -244,17 +246,19 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               </div>
             </div>
-            <Link
-              to="/settings"
-              aria-label="Settings"
-              className={`tap md:hidden h-11 w-11 rounded-full border border-border flex items-center justify-center transition ${
-                pathname.startsWith("/settings")
-                  ? "bg-foreground text-background"
-                  : "bg-card/80 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Settings className="w-5 h-5" />
-            </Link>
+            {role !== "viewer" && (
+              <Link
+                to="/settings"
+                aria-label="Settings"
+                className={`tap md:hidden h-11 w-11 rounded-full border border-border flex items-center justify-center transition ${
+                  pathname.startsWith("/settings")
+                    ? "bg-foreground text-background"
+                    : "bg-card/80 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Settings className="w-5 h-5" />
+              </Link>
+            )}
           </div>
         </div>
         <div className="mt-3 h-2.5 rounded-full bg-muted overflow-hidden">

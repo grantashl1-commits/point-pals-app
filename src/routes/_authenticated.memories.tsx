@@ -29,6 +29,8 @@ import {
   addComment,
   fetchPostFeedback,
   transcribeAudio,
+  getFeedbackVersion,
+  subscribeFeedbackVersion,
 } from "@/lib/memories";
 import type { MemoryCommentEntry, MemoryMedia } from "@/lib/memories";
 import {
@@ -840,19 +842,28 @@ function MemoryCard({
   const shown = tagsExpanded ? tagged : tagged.slice(0, 2);
   const overflow = tagged.length - 2;
 
-  // Load likes/comments on mount (for remote posts)
+  // Feedback version bumps when a like/comment arrives via realtime.
+  const feedbackVersion = useSyncExternalStore(
+    (cb) => subscribeFeedbackVersion(memory.id, cb),
+    () => getFeedbackVersion(memory.id),
+    () => 0,
+  );
   useEffect(() => {
-    if (!feedbackLoaded) {
-      fetchPostFeedback(memory.id)
-        .then((fb) => {
-          setLiked(fb.likedByMe);
-          setLikeCount(fb.likeCount);
-          setComments(fb.comments);
-          setFeedbackLoaded(true);
-        })
-        .catch(() => setFeedbackLoaded(true));
-    }
-  }, [memory.id, memory.remote, feedbackLoaded]);
+    // First load (feedbackLoaded=false, version=0).
+    // Re-fetch on version bumps after the initial load is done.
+    const shouldLoad = !feedbackLoaded;
+    const shouldRefresh = feedbackLoaded && feedbackVersion > 0;
+    const firstVersion = feedbackVersion;
+    if (!shouldLoad && !shouldRefresh) return;
+    fetchPostFeedback(memory.id)
+      .then((fb) => {
+        setLiked(fb.likedByMe);
+        setLikeCount(fb.likeCount);
+        setComments(fb.comments);
+        setFeedbackLoaded(true);
+      })
+      .catch(() => { if (firstVersion === 0) setFeedbackLoaded(true); });
+  }, [memory.id, memory.remote, feedbackVersion]);
 
   const handleLike = async () => {
     if (!userId) return;

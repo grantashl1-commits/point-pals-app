@@ -33,11 +33,17 @@ create index if not exists reward_history_household_idx
   on public.reward_history(household_id, achieved_at desc);
 
 alter table public.reward_history enable row level security;
-create policy reward_history_select on public.reward_history
-  for select to authenticated using (public.is_member(household_id));
-create policy reward_history_insert on public.reward_history
-  for insert to authenticated
-  with check (public.is_member(household_id) and public.has_min_role(household_id, 'parent'));
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename = 'reward_history' and policyname = 'reward_history_select') then
+    create policy reward_history_select on public.reward_history
+      for select to authenticated using (public.is_member(household_id));
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'reward_history' and policyname = 'reward_history_insert') then
+    create policy reward_history_insert on public.reward_history
+      for insert to authenticated
+      with check (public.is_member(household_id) and public.has_min_role(household_id, 'parent'));
+  end if;
+end $$;
 
 -- =============================================================================
 -- PART 3 — Memory likes & comments
@@ -64,30 +70,46 @@ alter table public.memory_likes    enable row level security;
 alter table public.memory_comments enable row level security;
 
 -- Likes: household members can select/insert/delete their own likes
-create policy memory_likes_select on public.memory_likes
-  for select to authenticated
-  using (exists (select 1 from public.memory_posts p
-                 where p.id = memory_likes.post_id and public.is_member(p.household_id)));
-create policy memory_likes_insert on public.memory_likes
-  for insert to authenticated
-  with check (exists (select 1 from public.memory_posts p
-                      where p.id = memory_likes.post_id and public.is_member(p.household_id)));
-create policy memory_likes_delete on public.memory_likes
-  for delete to authenticated
-  using (user_id = auth.uid());
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename = 'memory_likes' and policyname = 'memory_likes_select') then
+    create policy memory_likes_select on public.memory_likes
+      for select to authenticated
+      using (exists (select 1 from public.memory_posts p
+                     where p.id = memory_likes.post_id and public.is_member(p.household_id)));
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'memory_likes' and policyname = 'memory_likes_insert') then
+    create policy memory_likes_insert on public.memory_likes
+      for insert to authenticated
+      with check (exists (select 1 from public.memory_posts p
+                          where p.id = memory_likes.post_id and public.is_member(p.household_id)));
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'memory_likes' and policyname = 'memory_likes_delete') then
+    create policy memory_likes_delete on public.memory_likes
+      for delete to authenticated
+      using (user_id = auth.uid());
+  end if;
+end $$;
 
 -- Comments: household members can select, insert owns, delete owns
-create policy memory_comments_select on public.memory_comments
-  for select to authenticated
-  using (exists (select 1 from public.memory_posts p
-                 where p.id = memory_comments.post_id and public.is_member(p.household_id)));
-create policy memory_comments_insert on public.memory_comments
-  for insert to authenticated
-  with check (exists (select 1 from public.memory_posts p
-                      where p.id = memory_comments.post_id and public.is_member(p.household_id)));
-create policy memory_comments_delete on public.memory_comments
-  for delete to authenticated
-  using (user_id = auth.uid());
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename = 'memory_comments' and policyname = 'memory_comments_select') then
+    create policy memory_comments_select on public.memory_comments
+      for select to authenticated
+      using (exists (select 1 from public.memory_posts p
+                     where p.id = memory_comments.post_id and public.is_member(p.household_id)));
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'memory_comments' and policyname = 'memory_comments_insert') then
+    create policy memory_comments_insert on public.memory_comments
+      for insert to authenticated
+      with check (exists (select 1 from public.memory_posts p
+                          where p.id = memory_comments.post_id and public.is_member(p.household_id)));
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'memory_comments' and policyname = 'memory_comments_delete') then
+    create policy memory_comments_delete on public.memory_comments
+      for delete to authenticated
+      using (user_id = auth.uid());
+  end if;
+end $$;
 
 -- =============================================================================
 -- PART 4 — Audio path on memory_posts
@@ -108,12 +130,20 @@ create table if not exists public.household_settings (
 );
 
 alter table public.household_settings enable row level security;
-create policy household_settings_select on public.household_settings
-  for select to authenticated using (public.is_member(household_id));
-create policy household_settings_insert on public.household_settings
-  for insert to authenticated with check (public.is_member(household_id) and public.has_min_role(household_id, 'admin'));
-create policy household_settings_update on public.household_settings
-  for update to authenticated using (public.has_min_role(household_id, 'admin')) with check (public.has_min_role(household_id, 'admin'));
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename = 'household_settings' and policyname = 'household_settings_select') then
+    create policy household_settings_select on public.household_settings
+      for select to authenticated using (public.is_member(household_id));
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'household_settings' and policyname = 'household_settings_insert') then
+    create policy household_settings_insert on public.household_settings
+      for insert to authenticated with check (public.is_member(household_id) and public.has_min_role(household_id, 'admin'));
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'household_settings' and policyname = 'household_settings_update') then
+    create policy household_settings_update on public.household_settings
+      for update to authenticated using (public.has_min_role(household_id, 'admin')) with check (public.has_min_role(household_id, 'admin'));
+  end if;
+end $$;
 
 -- =============================================================================
 -- PART 6 — Update has_min_role to support viewer role
@@ -207,6 +237,14 @@ alter table public.memory_posts    REPLICA IDENTITY FULL;
 alter table public.memory_likes    REPLICA IDENTITY FULL;
 alter table public.memory_comments REPLICA IDENTITY FULL;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.memory_posts;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.memory_likes;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.memory_comments;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'memory_posts') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.memory_posts;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'memory_likes') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.memory_likes;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'memory_comments') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.memory_comments;
+  END IF;
+END $$;

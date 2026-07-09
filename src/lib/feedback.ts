@@ -80,6 +80,9 @@ export function primeAudio() {
   }
 }
 
+// Auto-prime on first user interaction so remote awards can play sound.
+attachAudioPrimer();
+
 // A single soft, rounded note. Sine core + a touch of triangle for warmth,
 // wrapped in a gentle attack/decay envelope so nothing clicks or stabs.
 function note(ac: AudioContext, freq: number, startAt: number, dur: number, gain: number) {
@@ -142,9 +145,37 @@ export function playFanfare() {
   });
 }
 
+// G8 — Single call site for award feedback, used from both the tap handler
+// (local award) and the realtime point_events INSERT handler (remote award).
+// Combines haptic + chime. Safe to call from any context — if AudioContext
+// is suspended (no user gesture), it stays silent rather than throwing.
+export function triggerAwardFeedback(kind: "positive" | "needs-work") {
+  haptic(kind === "positive" ? "success" : "medium");
+  playChime(kind);
+}
+
 // Exposed for tests/diagnostics: current audio state without side effects.
 export function audioState(): AudioContextState | "unavailable" {
   return ctx?.state ?? "unavailable";
+}
+
+// G10 — Prime audio on the first user interaction so remote awards (real-time
+// INSERTs without a local gesture) can play sound. Once the AudioContext is
+// running, it stays live for the page lifetime. Called once at module import.
+let primerAttached = false;
+export function attachAudioPrimer() {
+  if (primerAttached || typeof document === "undefined") return;
+  primerAttached = true;
+  document.addEventListener(
+    "pointerdown",
+    () => {
+      const ac = audio();
+      if (ac && ac.state !== "running") {
+        ac.resume().catch(() => {/* not in a gesture yet */});
+      }
+    },
+    { once: true, passive: true },
+  );
 }
 
 // ---------------------------------------------------------------------------
