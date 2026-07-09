@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-store";
 import { PublicLogo } from "@/components/PublicLogo";
@@ -61,6 +61,17 @@ function SignInPage() {
   const navigate = useNavigate();
   const { refreshFromServer } = useApp();
   const [email, setEmail] = useState("");
+
+  // After Google OAuth popup, redirect away from the login form.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) navigate({ to: "/" });
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) navigate({ to: "/" });
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [navigate]);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

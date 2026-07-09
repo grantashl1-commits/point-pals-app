@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTrialWelcome } from "@/lib/emails.functions";
 import { useApp } from "@/lib/app-store";
@@ -62,6 +62,18 @@ function SignUpPage() {
   const navigate = useNavigate();
   const { refreshFromServer } = useApp();
   const [name, setName] = useState("");
+
+  // After Google OAuth popup, the user is authenticated but still on this
+  // page with a dangling # in the URL.  Redirect to onboarding/home.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) navigate({ to: "/onboarding" });
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) navigate({ to: "/onboarding" });
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [navigate]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);

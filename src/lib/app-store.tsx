@@ -237,6 +237,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
   const didHydrate = useRef(false);
 
+  // Safety net: never stay stuck on the splash screen longer than 8 s, even if
+  // getSession / bootLive hangs or the Supabase session can't be recovered.
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Hydrate from localStorage once on the client.
   useEffect(() => {
     if (didHydrate.current) return;
