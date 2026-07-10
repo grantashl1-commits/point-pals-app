@@ -40,10 +40,10 @@ export function AwardModal({
     () => chores.filter((c) => appliesToKid(c, kid.id)),
     [chores, kid.id],
   );
-  const eligibleSkills = useMemo(
-    () => skills.filter((s) => appliesToKid(s, kid.id)),
-    [skills, kid.id],
-  );
+  // Positive and needs-work behaviours are NOT assigned per child — every
+  // positive/negative point is always awardable for whichever kid is selected,
+  // no tagging required. (Chores above still respect per-kid assignment.)
+  const eligibleSkills = skills;
   const positive = useMemo(() => eligibleSkills.filter((s) => s.isPositive), [eligibleSkills]);
   const needsWork = useMemo(() => eligibleSkills.filter((s) => !s.isPositive), [eligibleSkills]);
 
