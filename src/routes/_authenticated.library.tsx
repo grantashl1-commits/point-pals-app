@@ -574,8 +574,8 @@ function AppliesToChips({
       </div>
       <p className="text-[11px] text-muted-foreground mt-1.5">
         {selected.length === 0
-          ? "Pick at least one kid."
-          : "Everyone ticked = applies to the whole family, including kids you add later."}
+          ? "Pick at least one child."
+          : "Everyone ticked = applies to the whole family, including children you add later."}
       </p>
     </div>
   );
@@ -1276,8 +1276,8 @@ function EditPanel({
 }) {
   const { kids } = useApp();
   const allKidIds = kids.map((k) => k.id);
-  // null/undefined = universal (every chip ticked); [] (empty) = no one assigned
-  const initialAssigned = item.assignedKidIds ?? allKidIds;
+  // null/undefined or [] = no one pre-selected; user taps chips to assign.
+  const initialAssigned = item.assignedKidIds ?? [];
   const [name, setName] = useState(item.name);
   const [points, setPoints] = useState(item.points);
   const [color, setColor] = useState<PastelKey>(item.color);
@@ -1289,7 +1289,7 @@ function EditPanel({
     setPoints(item.points);
     setColor(item.color);
     setTagsStr((item.tags ?? []).join(", "));
-    setAssigned(item.assignedKidIds ?? kids.map((k) => k.id));
+    setAssigned(item.assignedKidIds ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, item.name, item.points, item.color, item.tags, item.assignedKidIds]);
 
