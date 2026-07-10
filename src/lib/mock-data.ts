@@ -66,8 +66,7 @@ export type Skill = {
  * [] = no one — parent must tag kids manually.
  */
 export function appliesToKid(item: { assignedKidIds?: string[] | null }, kidId: string): boolean {
-  if (item.assignedKidIds === undefined || item.assignedKidIds === null) return true;
-  if (item.assignedKidIds.length === 0) return false;
+  if (!item.assignedKidIds?.length) return false;
   return item.assignedKidIds.includes(kidId);
 }
 

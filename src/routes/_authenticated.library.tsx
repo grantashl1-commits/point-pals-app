@@ -1408,12 +1408,7 @@ function EditPanel({
                   .map((t) => t.trim())
                   .filter(Boolean);
               }
-              // "Everyone still ticked" persists as null (universal), NOT as an
-              // explicit list of today's kids — otherwise a chore nobody meant
-              // to narrow would skip any kid added to the household later.
-              patch.assignedKidIds = allKidIds.every((id) => assigned.includes(id))
-                ? null
-                : assigned;
+              patch.assignedKidIds = assigned;
               onSave(patch);
             }}
             disabled={!name.trim() || assigned.length === 0}

@@ -68,10 +68,10 @@ export const submitContactForm = createServerFn({ method: "POST" })
       templateKey: "supportAutoreply",
       to: data.email,
       replyTo: SUPPORT_INBOX,
-      data: {
-        first_name: data.name.split(" ")[0] ?? data.name,
-        message_preview: data.message,
-      },
+      data: {                                                                                            
+    first_name: userRes?.user?.user_metadata?.name ?? "",                                            
+    trial_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),      
+  },
     });
 
     // Forward the raw message to the support inbox as plain text — direct
