@@ -41,6 +41,7 @@ function HomePage() {
   const [toast, setToast] = useState<{ batch: AwardBatch; text: string } | null>(null);
   const [mounted, setMounted] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const jarsRef = useRef<HTMLElement>(null);
   useEffect(() => setMounted(true), []);
 
   // First-time-visitor redirect to the marketing page (§8).
@@ -78,6 +79,16 @@ function HomePage() {
     // so deferring the chime/award out of the gesture is safe on iOS.
     setActiveKidId(null);
     triggerAwardFeedback(positiveAward ? "positive" : "needs-work");
+    // On mobile the jar sits below the fold, so once the modal closes, smooth-
+    // scroll it into view and hold the marble drop until the scroll lands — the
+    // child actually watches the marble fall in. Desktop keeps the snappy
+    // timing since the jar is already beside the kid row.
+    const onMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    if (onMobile) {
+      requestAnimationFrame(() =>
+        jarsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      );
+    }
     // Fire-and-forget points write — feedback has already been called
     // synchronously inside the gesture so the AudioContext is live.
     window.setTimeout(() => {
@@ -86,7 +97,7 @@ function HomePage() {
       setToast({ batch, text });
       if (toastTimer.current) clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => setToast(null), 5000);
-    }, 180);
+    }, onMobile ? 620 : 180);
   };
 
   const undo = () => {
@@ -138,7 +149,7 @@ function HomePage() {
       </section>
 
       {/* Jars — personal jars flank the family jar when split jars are on (§6) */}
-      <section aria-labelledby="jars-heading">
+      <section aria-labelledby="jars-heading" ref={jarsRef}>
         <h2 id="jars-heading" className="sr-only">Jars</h2>
         <div className="flex flex-col items-center gap-6">
           {/* Personal jars row — above the family jar when split jars enabled */}
