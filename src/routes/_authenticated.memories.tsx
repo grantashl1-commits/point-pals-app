@@ -845,8 +845,11 @@ function MemoryCard({
         : [];
 
   const tagged = kids.filter((k) => memory.kidIds.includes(k.id));
-  const shown = tagsExpanded ? tagged : tagged.slice(0, 2);
-  const overflow = tagged.length - 2;
+  // When no one is explicitly tagged ("the whole family"), show all
+  // current kids the same way as a multi-tag — avatars and names.
+  const displayKids = tagged.length > 0 ? tagged : kids;
+  const shown = tagsExpanded ? displayKids : displayKids.slice(0, 2);
+  const overflow = displayKids.length - 2;
 
   // Feedback version bumps when a like/comment arrives via realtime.
   const feedbackVersion = useSyncExternalStore(
@@ -915,31 +918,25 @@ function MemoryCard({
           parent — same data, just a cleaner arrangement. */}
       <div className="px-4 py-3 flex items-start gap-3 border-b border-border/40">
         <div className="flex -space-x-2 shrink-0">
-          {tagged.length > 0 ? (
-            tagged.slice(0, 3).map((k) => (
-              <span
-                key={k.id}
-                className="h-9 w-9 rounded-full border-2 border-card overflow-hidden flex items-center justify-center"
-                style={{
-                  backgroundColor: PASTEL_HEX[k.color as keyof typeof PASTEL_HEX] ?? "#ccc",
-                }}
-              >
-                <CompanionAvatar
-                  seed={k.id}
-                  color={k.color as PastelKey}
-                  size={32}
-                  companionId={k.companionId}
-                />
-              </span>
-            ))
-          ) : (
-            <span className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground">
-              ?
+          {displayKids.slice(0, 3).map((k) => (
+            <span
+              key={k.id}
+              className="h-9 w-9 rounded-full border-2 border-card overflow-hidden flex items-center justify-center"
+              style={{
+                backgroundColor: PASTEL_HEX[k.color as keyof typeof PASTEL_HEX] ?? "#ccc",
+              }}
+            >
+              <CompanionAvatar
+                seed={k.id}
+                color={k.color as PastelKey}
+                size={32}
+                companionId={k.companionId}
+              />
             </span>
-          )}
-          {tagged.length > 3 && (
+          ))}
+          {displayKids.length > 3 && (
             <span className="h-9 w-9 rounded-full border-2 border-card bg-muted flex items-center justify-center text-[11px] font-bold">
-              +{tagged.length - 3}
+              +{displayKids.length - 3}
             </span>
           )}
         </div>
@@ -948,9 +945,7 @@ function MemoryCard({
           <div className="flex items-baseline justify-between gap-2">
             <div className="text-sm font-semibold truncate flex items-baseline gap-1.5 min-w-0">
               <span className="truncate">
-                {tagged.length === 0
-                  ? "The whole family"
-                  : shown.map((k) => k.name).join(tagged.length > 2 ? ", " : " & ")}
+                {shown.map((k) => k.name).join(displayKids.length > 2 ? ", " : " & ")}
               </span>
               {!tagsExpanded && overflow > 0 && (
                 <button

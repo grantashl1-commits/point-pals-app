@@ -77,5 +77,7 @@ export function captureError(e: unknown, context?: Record<string, unknown>): voi
   }
 }
 
-// Exposed for unit-testing the scrubber.
-export const __test = { scrubString, scrubEvent };
+if (import.meta.env.DEV) {
+  // Exposed for unit-testing the scrubber.
+  (globalThis as Record<string, unknown>).__monitoringTest = { scrubString, scrubEvent };
+}

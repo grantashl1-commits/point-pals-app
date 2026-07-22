@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/tanstackstart-react";
 
 Sentry.init({
-  dsn: "https://1afbd0fe61f257cec3c81fdcc50ab72a@o4511692266536960.ingest.us.sentry.io/4511692268699648",
+  dsn: process.env.SENTRY_DSN,
 
   dataCollection: {
     // To disable sending user data and HTTP bodies, uncomment the lines below.

@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
       };
 
       if (tip === "month1") {
-        variables.trial_end_date = "soon"; // placeholder — actual value from billing
+        variables.trial_end_date = "in the next few days";
       }
 
       const result = await sendResendTemplate(resendKey, {

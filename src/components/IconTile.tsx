@@ -14,6 +14,7 @@ export function IconTile({
   onClick,
   size = "md",
   selected = false,
+  bottomOverlay,
 }: {
   icon: string;
   label: string;
@@ -23,6 +24,7 @@ export function IconTile({
   onClick?: () => void;
   size?: "sm" | "md" | "lg";
   selected?: boolean;
+  bottomOverlay?: React.ReactNode;
 }) {
   const bg = muted ? PASTEL_MUTED[color] : PASTEL_HEX[color];
   const dim = { sm: "w-16", md: "w-24", lg: "w-28" }[size];
@@ -67,6 +69,7 @@ export function IconTile({
             {points > 0 ? `+${points}` : points}
           </span>
         )}
+        {bottomOverlay && <div className="absolute -bottom-1 -left-1">{bottomOverlay}</div>}
       </div>
       <div className="text-xs font-medium text-center leading-tight text-foreground/80">
         {label}

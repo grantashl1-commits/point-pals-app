@@ -149,7 +149,9 @@ function loadJarSettings(): Partial<Household> | null {
   try {
     const raw = window.localStorage.getItem(JAR_SETTINGS_KEY);
     return raw ? (JSON.parse(raw) as Partial<Household>) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 function saveJarSettings(hh: Household) {
@@ -166,7 +168,9 @@ function saveJarSettings(hh: Household) {
         rewardTarget: hh.rewardTarget,
       }),
     );
-  } catch { /* storage blocked */ }
+  } catch {
+    /* storage blocked */
+  }
 }
 
 type Persisted = {
@@ -220,6 +224,8 @@ function computeStreaks(
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persisted>(initialState);
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"demo" | "live">("demo");
@@ -457,10 +463,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 ? "positive"
                 : "needs-work",
             );
-            setState((s) => ({
-              ...s,
-              history: [mapEvent(newRow), ...s.history].slice(0, 200),
-            }));
+            const event = mapEvent(newRow);
+            const pts = event.points;
+            setState((s) => {
+              const sharedDelta = s.household.splitJarsEnabled
+                ? s.household.splitMode === "match"
+                  ? pts
+                  : Math.floor((pts * s.household.splitRatio) / 100)
+                : pts;
+              return {
+                ...s,
+                history: [event, ...s.history].slice(0, 200),
+                household: {
+                  ...s.household,
+                  sharedPool: Math.max(0, s.household.sharedPool + sharedDelta),
+                },
+                kids: s.kids.map((k) =>
+                  k.id === event.kidId
+                    ? {
+                        ...k,
+                        currentPoints: Math.max(0, k.currentPoints + pts),
+                        allTimePoints: Math.max(0, k.allTimePoints + pts),
+                        personalPool: s.household.splitJarsEnabled
+                          ? Math.max(
+                              0,
+                              k.personalPool +
+                                (s.household.splitMode === "match" ? pts : pts - sharedDelta),
+                            )
+                          : k.personalPool,
+                      }
+                    : k,
+                ),
+              };
+            });
           } else if (payload.eventType === "DELETE" && oldRow?.id) {
             setState((s) => ({ ...s, history: s.history.filter((e) => e.id !== oldRow.id) }));
           }
@@ -492,7 +527,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         { event: "UPDATE", schema: "public", table: "households", filter: `id=eq.${hid}` },
         (payload) => {
           const row = payload.new as Parameters<typeof mapHousehold>[0];
-          setState((s) => ({ ...s, household: mapHousehold(row) }));
+          const mapped = mapHousehold(row);
+          // Preserve localStorage jar settings if DB columns haven't migrated yet
+          const localJar = loadJarSettings();
+          if (localJar) {
+            Object.assign(mapped, {
+              splitJarsEnabled: localJar.splitJarsEnabled ?? mapped.splitJarsEnabled,
+              splitRatio: localJar.splitRatio ?? mapped.splitRatio,
+              splitMode: localJar.splitMode ?? mapped.splitMode,
+              sharedJarEnabled: localJar.sharedJarEnabled ?? mapped.sharedJarEnabled,
+              activeRewardName: localJar.activeRewardName ?? mapped.activeRewardName,
+              activeRewardTarget: localJar.activeRewardTarget ?? mapped.activeRewardTarget,
+              rewardTarget: localJar.rewardTarget ?? mapped.rewardTarget,
+            });
+          }
+          setState((s) => ({ ...s, household: mapped }));
         },
       )
       .on(
@@ -605,7 +654,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         sharedPoints = item.points;
         personalPoints = item.points;
       } else {
-        sharedPoints = Math.floor(item.points * household.splitRatio / 100);
+        sharedPoints = Math.floor((item.points * household.splitRatio) / 100);
         personalPoints = item.points - sharedPoints;
       }
       const poolDelta = sharedPoints;
@@ -618,37 +667,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
         points: item.points,
         batch_id: batchId,
       }));
-      const batch: AwardBatch = { id: batchId, at: now, kidIds, item, poolDelta, personalDelta: household.splitJarsEnabled ? personalPoints : undefined };
-      setState((s) => ({
-        ...s,
-        kids: s.kids.map((k) =>
-          kidIds.includes(k.id)
-            ? {
-                ...k,
-                currentPoints: Math.max(0, k.currentPoints + item.points),
-                allTimePoints: Math.max(0, k.allTimePoints + item.points),
-                personalPool: household.splitJarsEnabled ? Math.max(0, k.personalPool + personalPoints) : k.personalPool,
-              }
-            : k,
-        ),
-        household: {
-          ...s.household,
-          sharedPool: Math.max(0, s.household.sharedPool + poolDelta),
-        },
-        history: [
-          ...eventRows.map((row) => ({
-            id: row.id,
-            kidId: row.kid_id,
-            itemName: item.name,
-            itemIcon: item.icon,
-            points: item.points,
-            at: now,
-          })),
-          ...s.history,
-        ].slice(0, 200),
-      }));
+      const batch: AwardBatch = {
+        id: batchId,
+        at: now,
+        kidIds,
+        item,
+        poolDelta,
+        personalDelta: household.splitJarsEnabled ? personalPoints : undefined,
+      };
+      setState((s) => {
+        // Recompute split logic from latest state in case realtime changed settings
+        const hh = s.household;
+        let pp = 0;
+        if (!hh.splitJarsEnabled) pp = 0;
+        else if (!hh.sharedJarEnabled) pp = item.points;
+        else if (hh.splitMode === "match") pp = item.points;
+        else pp = item.points - Math.floor((item.points * hh.splitRatio) / 100);
+        return {
+          ...s,
+          kids: s.kids.map((k) =>
+            kidIds.includes(k.id)
+              ? {
+                  ...k,
+                  currentPoints: Math.max(0, k.currentPoints + item.points),
+                  allTimePoints: Math.max(0, k.allTimePoints + item.points),
+                  personalPool: hh.splitJarsEnabled
+                    ? Math.max(0, k.personalPool + pp)
+                    : k.personalPool,
+                }
+              : k,
+          ),
+          household: {
+            ...hh,
+            sharedPool: Math.max(0, hh.sharedPool + poolDelta),
+          },
+          history: [
+            ...eventRows.map((row) => ({
+              id: row.id,
+              kidId: row.kid_id,
+              itemName: item.name,
+              itemIcon: item.icon,
+              points: item.points,
+              at: now,
+            })),
+            ...s.history,
+          ].slice(0, 200),
+        };
+      });
       if (live) {
-        const nextPool = Math.max(0, household.sharedPool + poolDelta);
+        const snap = stateRef.current;
+        const nextPool = Math.max(0, snap.household.sharedPool + poolDelta);
         void dbWrite(
           async () =>
             await supabase
@@ -664,15 +732,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           async () =>
             await supabase.from("households").update({ shared_pool: nextPool }).eq("id", hid()),
         );
-        // Sync per-kid totals — update current_points, all_time_points, and personal_pool.
         kidIds.forEach((kidId) => {
-          const kid = kids.find((k) => k.id === kidId);
+          const kid = snap.kids.find((k) => k.id === kidId);
           if (!kid) return;
           const nextCur = Math.max(0, kid.currentPoints + item.points);
           const nextAll = Math.max(0, kid.allTimePoints + item.points);
-          const nextPersonal = household.splitJarsEnabled ? Math.max(0, kid.personalPool + personalPoints) : kid.personalPool;
-          const dbPatch: Record<string, unknown> = { current_points: nextCur, all_time_points: nextAll };
-          if (household.splitJarsEnabled) dbPatch.personal_pool = nextPersonal;
+          const nextPersonal = snap.household.splitJarsEnabled
+            ? Math.max(0, kid.personalPool + personalPoints)
+            : kid.personalPool;
+          const dbPatch: Record<string, unknown> = {
+            current_points: nextCur,
+            all_time_points: nextAll,
+          };
+          if (snap.household.splitJarsEnabled) dbPatch.personal_pool = nextPersonal;
           void dbWrite(
             async () =>
               await supabase
@@ -694,7 +766,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 ...k,
                 currentPoints: Math.max(0, k.currentPoints - batch.item.points),
                 allTimePoints: Math.max(0, k.allTimePoints - batch.item.points),
-                personalPool: personalDelta > 0 ? Math.max(0, k.personalPool - personalDelta) : k.personalPool,
+                personalPool:
+                  personalDelta > 0 ? Math.max(0, k.personalPool - personalDelta) : k.personalPool,
               }
             : k,
         ),
@@ -722,7 +795,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (!kid) return;
           const nextCur = Math.max(0, kid.currentPoints - batch.item.points);
           const nextAll = Math.max(0, kid.allTimePoints - batch.item.points);
-          const dbPatch: Record<string, unknown> = { current_points: nextCur, all_time_points: nextAll };
+          const dbPatch: Record<string, unknown> = {
+            current_points: nextCur,
+            all_time_points: nextAll,
+          };
           if (personalDelta > 0) {
             const nextPersonal = Math.max(0, kid.personalPool - personalDelta);
             dbPatch.personal_pool = nextPersonal;
@@ -840,17 +916,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const dbPatch: Record<string, unknown> = {};
         if (patch.name !== undefined) dbPatch.name = patch.name;
         if (patch.color !== undefined) dbPatch.color = patch.color;
-        if (patch.currentPoints !== undefined)
-          dbPatch.current_points = patch.currentPoints;
-        if (patch.allTimePoints !== undefined)
-          dbPatch.all_time_points = patch.allTimePoints;
+        if (patch.currentPoints !== undefined) dbPatch.current_points = patch.currentPoints;
+        if (patch.allTimePoints !== undefined) dbPatch.all_time_points = patch.allTimePoints;
         if (patch.companionId !== undefined) dbPatch.avatar_key = patch.companionId;
         if (patch.personalPool !== undefined) dbPatch.personal_pool = patch.personalPool;
         if (patch.personalTarget !== undefined) dbPatch.personal_target = patch.personalTarget;
         if (patch.personalReward !== undefined)
           dbPatch.personal_reward = patch.personalReward || null;
         if (Object.keys(dbPatch).length) {
-          void dbWrite(async () => await supabase.from("kids").update(dbPatch as never).eq("id", id));
+          void dbWrite(
+            async () =>
+              await supabase
+                .from("kids")
+                .update(dbPatch as never)
+                .eq("id", id),
+          );
         }
       }
     },
@@ -1107,9 +1187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     claimPersonalReward: (kidId) => {
       setState((s) => ({
         ...s,
-        kids: s.kids.map((k) =>
-          k.id === kidId ? { ...k, personalPool: 0 } : k,
-        ),
+        kids: s.kids.map((k) => (k.id === kidId ? { ...k, personalPool: 0 } : k)),
       }));
       if (live) {
         void dbWrite(

@@ -21,6 +21,12 @@ dist-ssr
 _deploy_*
 _upload_*
 _up*.mjs
+_check_*.mjs
+_check_*.sql
+_fix_*.sql
+_test_body.json
+assignment-test.mjs
+kimi-*.mjs
 
 # Wrangler / Cloudflare
 .wrangler/
@@ -37,9 +43,9 @@ _up*.mjs
 *.sln
 *.sw?
 
-# Capacitor assets config (local paths differ per developer)
+# Capacitor assets config
 /capacitor-web/
-/capacitor-assets.json
+/assets/
 
 # Environment (only .env.example is committed)
 .env
