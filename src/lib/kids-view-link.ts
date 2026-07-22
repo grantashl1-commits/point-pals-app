@@ -27,7 +27,7 @@ export type KidsViewData = {
     name: string;
     sharedPool: number;
     rewardTarget: number;
-    rewardName: string | null;
+    rewardName?: string | null;
     splitJarsEnabled: boolean;
     sharedJarEnabled: boolean;
   };

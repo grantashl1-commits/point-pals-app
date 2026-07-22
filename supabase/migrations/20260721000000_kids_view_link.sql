@@ -30,7 +30,6 @@ as $$
       'name', h.name,
       'sharedPool', h.shared_pool,
       'rewardTarget', h.reward_target,
-      'rewardName', h.reward_name,
       'splitJarsEnabled', coalesce(h.split_jars_enabled, false),
       'sharedJarEnabled', coalesce(h.shared_jar_enabled, true)
     ),
