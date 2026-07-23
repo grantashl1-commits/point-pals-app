@@ -40,7 +40,9 @@ export const Route = createFileRoute("/k/$token")({
   }),
 });
 
-const REFRESH_MS = 30_000;
+// Near-real-time: re-poll every few seconds so a parent's award shows on the
+// kid's device within moments (MarbleJar animates the newly-added marbles).
+const REFRESH_MS = 4_000;
 
 function KidsViewPublic() {
   const { token } = Route.useParams();
