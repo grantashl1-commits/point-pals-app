@@ -49,3 +49,4 @@ kimi-*.mjs
 
 # Environment (only .env.example is committed)
 .env
+/android/pointpals.keystore
