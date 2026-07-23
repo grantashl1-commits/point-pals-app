@@ -14,6 +14,11 @@ const config: CapacitorConfig = {
   appName: 'PointPals',
   webDir: 'capacitor-web',
 
+  server: {
+    url: devServerUrl ?? 'https://pointpals.co.nz',
+    cleartext: Boolean(devServerUrl),
+  },
+
   // ── Deep links (Supabase PKCE auth callback) ───────────────────────────────
   // After sign-in the Supabase redirect URI bounces back to:
   //   pointpals://callback#access_token=...

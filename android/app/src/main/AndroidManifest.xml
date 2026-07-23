@@ -26,6 +26,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="pointpals" android:host="callback" />
             </intent-filter>
+
+            <!-- RevenueCat paywall preview -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="rc-7ffebf7c98" />
+            </intent-filter>
         </activity>
 
         <provider
